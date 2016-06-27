@@ -109,23 +109,23 @@ public class SynapseClient extends Thread {
         return this.externalQueue.poll();
     }
 
-    public void run(){
+    public void run() {
         //this.registerClassLoader();
         Runtime.getRuntime().addShutdownHook(new ShutdownHandler());
-        try{
+        try {
             SynapseSocket socket = new SynapseSocket(this.getLogger(), this.port, this.interfaz);
             new ServerConnection(this, socket);
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private class ShutdownHandler extends Thread {
         public void run() {
-            if(!shutdown){
+            if (!shutdown) {
                 logger.emergency("SynLib crashed!");
             }
         }
     }
-    
+
 }

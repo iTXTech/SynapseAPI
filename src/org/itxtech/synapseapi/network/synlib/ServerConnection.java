@@ -9,15 +9,21 @@ import java.io.InputStream;
  * Created by boybook on 16/6/24.
  */
 public class ServerConnection {
-    public static final byte[] MAGIC_BYTES = [(byte) 0x35, (byte) 0xac, (byte) 0x66, (byte) 0xbf];
+    public static final byte[] MAGIC_BYTES = new byte[]{
+            (byte) 0x35, (byte) 0xac, (byte) 0x66, (byte) 0xbf
+    };
 
     private byte[] receiveBuffer = new byte[0];
     private byte[] sendBuffer = new byte[0];
-    /** @var resource */
+    /**
+     * @var resource
+     */
     private SynapseSocket socket;
     private String ip;
     private int port;
-    /** @var SynapseClient */
+    /**
+     * @var SynapseClient
+     */
     private SynapseClient server;
     private long lastCheck;
     private boolean connected;
@@ -34,16 +40,16 @@ public class ServerConnection {
         this.run();
     }
 
-    public void run(){
+    public void run() {
         this.tickProcessor();
     }
 
-    private void tickProcessor(){
+    private void tickProcessor() {
         while (!this.server.isShutdown()) {
             long start = System.currentTimeMillis();
             this.tick();
             long time = System.currentTimeMillis();
-            if (time - start < 1){  //todo TPS ???
+            if (time - start < 1) {  //todo TPS ???
                 try {
                     Thread.sleep(1 - time + start);
                 } catch (InterruptedException e) {
@@ -55,14 +61,14 @@ public class ServerConnection {
         this.socket.close();
     }
 
-    private void tick(){
+    private void tick() {
         this.update();
         byte[] data = this.readPacket();
-        while(data != null){
+        while (data != null) {
             this.server.pushThreadToMainPacket(data);
         }
         byte[] data1 = this.server.readMainToThreadPacket();
-        while(data1.length > 0){
+        while (data1.length > 0) {
             this.writePacket(data1);
         }
     }
@@ -83,39 +89,39 @@ public class ServerConnection {
         return socket;
     }
 
-    public void update(){
-        if(this.server.needReconnect && this.connected){
+    public void update() {
+        if (this.server.needReconnect && this.connected) {
             this.connected = false;
             this.server.needReconnect = false;
         }
-        if(this.connected){
-            else{
-                try {
-                    InputStream inputStream = this.socket.getSocket().getInputStream();
-                    //已无能为力...............................................................
-                    this.receiveBuffer += inputStream.
-                    if(this.sendBuffer.length > 0) {
-                        @socket_write(this.socket.getSocket(), this.sendBuffer);
-                        this.sendBuffer = new byte[0];
-                    }
-                } catch (IOException e) {
-                    int err = e.hashCode();  //todo ??????
-                    if(err == 10057 || err == 10054){
-                        this.server.getLogger().error("Synapse connection has disconnected unexpectedly");
-                        this.connected = false;
-                        this.server.setConnected(false);
-                    }
+        if (this.connected) {
+            try {
+                byte[] buffer = readPacket();
+                //已无能为力...............................................................
+                byte[] bytes = new byte[buffer.length + this.receiveBuffer.length];
+                System.arraycopy(buffer, 0, bytes, 0, buffer.length);
+                System.arraycopy(this.receiveBuffer, 0, bytes, 0, receiveBuffer.length);
+                this.receiveBuffer = bytes;
+                if (this.sendBuffer.length > 0) {
+                    writePacket(this.sendBuffer);
+                    this.sendBuffer = new byte[0];
                 }
-
+            } catch (IOException e) {
+                int err = e.hashCode();  //todo ??????
+                if (err == 10057 || err == 10054) {
+                    this.server.getLogger().error("Synapse connection has disconnected unexpectedly");
+                    this.connected = false;
+                    this.server.setConnected(false);
+                }
             }
-        }else{
+        } else {
             long time;
-            if(((time = System.currentTimeMillis()) - this.lastCheck) >= 3){//re-connect
+            if (((time = System.currentTimeMillis()) - this.lastCheck) >= 3) {//re-connect
                 this.server.getLogger().notice("Trying to re-connect to Synapse Server");
-                if(this.socket.connect()){
+                if (this.socket.connect()) {
                     this.connected = true;
-                    this.ip = this.socket.getSocket().getInetAddress().getHostAddress();
-                    this.port = this.socket.getSocket().getPort();
+                    this.ip = "127.0.0.1";
+                    this.port = this.socket.getPort();
                     this.server.setConnected(true);
                     this.server.setNeedAuth(true);
                 }
@@ -124,7 +130,9 @@ public class ServerConnection {
         }
     }
 
-    public byte[] readPacket(){
+    public byte[] readPacket() {
+        byte[] buffer = new byte[2048];
+        /*
         end = explode(self::MAGIC_BYTES, this.receiveBuffer, 2);
         if(count(end) <= 2){
             if(count(end) == 1){
@@ -147,9 +155,11 @@ public class ServerConnection {
             }
             return buffer;
         }
-        return null;
+        */
+        return buffer;
     }
-    public void writePacket(byte[] data){
-        this.sendBuffer += Binary.writeLInt(data.length) + data.self::MAGIC_BYTES;
+
+    public void writePacket(byte[] data) {
+        this.socket.getSocket().write(Binary.writeLInt(data.length) + data + ServerConnection.MAGIC_BYTES);
     }
 }

@@ -15,6 +15,7 @@ import java.util.*;
 public class SynapseSocket {
 
     private SocketChannel socket;
+    private Selector selector = null;
     private ThreadedLogger logger;
     private String interfaz;
     private int port;
@@ -40,7 +41,11 @@ public class SynapseSocket {
 
     public boolean connect() {
         try {
-            this.socket = new SocketChannel();
+            this.selector = Selector.open();
+            InetSocketAddress isa = new InetSocketAddress("127.0.0.1", this.port);
+            this.socket = SocketChannel.open(isa);
+            this.socket.configureBlocking(false);
+            this.socket.register(selector, SelectionKey.OP_READ);
             //todo unblock???
         } catch (IOException e) {
             this.logger.critical("Synapse Client can't connect " + this.interfaz + ":" + this.port);
@@ -50,8 +55,12 @@ public class SynapseSocket {
         return true;
     }
 
-    public Socket getSocket() {
-        return socket;
+    public SocketChannel getSocket() {
+        return this.socket;
+    }
+
+    public int getPort() {
+        return this.port;
     }
 
     public void close() {
