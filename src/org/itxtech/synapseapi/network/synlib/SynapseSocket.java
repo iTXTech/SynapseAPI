@@ -63,6 +63,17 @@ public class SynapseSocket {
         return this.port;
     }
 
+    public byte[] readPacket(){
+        byte[] buffer = new byte[2048];
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+            }
+        });
+        return buffer;
+    }
+
     public void close() {
         try {
             this.socket.close();

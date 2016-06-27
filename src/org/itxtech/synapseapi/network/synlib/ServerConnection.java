@@ -132,6 +132,7 @@ public class ServerConnection {
 
     public byte[] readPacket() {
         byte[] buffer = new byte[2048];
+        byte[] bytes = this.socket.readPacket();
         /*
         end = explode(self::MAGIC_BYTES, this.receiveBuffer, 2);
         if(count(end) <= 2){

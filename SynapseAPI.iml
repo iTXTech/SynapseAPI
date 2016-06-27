@@ -7,7 +7,5 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="nukkit" />
-    <orderEntry type="library" name="Maven: com.google.code.gson:gson:2.4" level="project" />
   </component>
 </module>
