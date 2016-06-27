@@ -68,7 +68,7 @@ public class SynapseSocket {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                //// TODO: 2016/6/27  
+
             }
         });
         return buffer;
