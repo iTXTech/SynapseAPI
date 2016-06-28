@@ -6,5 +6,5 @@ version: "1.0.0"
 api: ["1.0.0"]
 
 load: STARTUP
-author: boybook
+author: ITXTech
 description: An API which enables you to transfer between Synapse Clients
