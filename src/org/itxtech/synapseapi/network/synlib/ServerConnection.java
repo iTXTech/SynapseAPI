@@ -131,8 +131,7 @@ public class ServerConnection {
     }
 
     public byte[] readPacket() {
-        byte[] buffer = new byte[2048];
-        byte[] bytes = this.socket.readPacket();
+        byte[] buffer = this.socket.readPacket();
         //// TODO: 2016/6/27  
         /*
         end = explode(self::MAGIC_BYTES, this.receiveBuffer, 2);

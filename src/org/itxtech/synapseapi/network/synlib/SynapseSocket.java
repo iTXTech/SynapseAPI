@@ -63,17 +63,28 @@ public class SynapseSocket {
         return this.port;
     }
 
-    public byte[] readPacket(){
+    public byte[] readPacket() {
         byte[] buffer = new byte[2048];
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-
+        try {
+            if (selector.select() > 0) {
+                for (SelectionKey sk : selector.selectedKeys()) {
+                    selector.selectedKeys().remove(sk);
+                    if (sk.isReadable()) {
+                        SocketChannel sc = (SocketChannel) sk.channel();
+                        ByteBuffer buff = ByteBuffer.allocate(2048);
+                        while (sc.read(buff) > 0) {
+                            sc.read(buff);
+                            buff.flip();
+                        }
+                        buff.get(buffer);
+                    }
+                }
             }
-        });
+        } catch (IOException e) {
+            this.logger.error("ReadPacket error: " + e.getMessage());
+        }
         return buffer;
     }
-
     public void close() {
         try {
             this.socket.close();
