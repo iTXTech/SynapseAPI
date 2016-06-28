@@ -4,6 +4,7 @@ import cn.nukkit.utils.Binary;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 /**
  * Created by boybook on 16/6/24.
@@ -132,6 +133,15 @@ public class ServerConnection {
 
     public byte[] readPacket() {
         byte[] buffer = this.socket.readPacket();
+        byte buff = buffer[buffer.length - 1];
+        byte[] bytes = new byte[]{
+                (byte) buff
+        };
+        if (bytes == ServerConnection.MAGIC_BYTES) {
+            if (buffer.length > 4) {
+                //TODO I need Packet'buffer
+            }
+        }
         //// TODO: 2016/6/27  
         /*
         end = explode(self::MAGIC_BYTES, this.receiveBuffer, 2);
