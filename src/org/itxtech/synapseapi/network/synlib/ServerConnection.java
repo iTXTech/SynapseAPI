@@ -132,10 +132,10 @@ public class ServerConnection {
     }
 
     public byte[] readPacket() {
+        byte[] buff = new byte[];
         byte[] buffer = this.socket.readPacket();
-        byte buff = buffer[buffer.length - 1];
         byte[] bytes = new byte[]{
-                (byte) buff
+                (byte) buffer[buffer.length - 1]
         };
         if (bytes == ServerConnection.MAGIC_BYTES) {
             if (buffer.length > 4) {
@@ -167,7 +167,7 @@ public class ServerConnection {
             return buffer;
         }
         */
-        return buffer;
+        return buff;
     }
 
     public void writePacket(byte[] data) {

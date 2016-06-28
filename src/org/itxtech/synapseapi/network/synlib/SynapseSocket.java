@@ -76,6 +76,7 @@ public class SynapseSocket {
                             sc.read(buff);
                             buff.flip();
                         }
+                        sk.interestOps(SelectionKey.OP_READ);
                         buff.get(buffer);
                     }
                 }
