@@ -3,6 +3,7 @@ package org.itxtech.synapseapi.network.synlib;
 import cn.nukkit.utils.Binary;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.io.InputStream;
 import java.util.Arrays;
 
@@ -98,13 +99,9 @@ public class ServerConnection {
         if (this.connected) {
             try {
                 byte[] buffer = readPacket();
-                //已无能为力...............................................................
-                byte[] bytes = new byte[buffer.length + this.receiveBuffer.length];
-                System.arraycopy(buffer, 0, bytes, 0, buffer.length);
-                System.arraycopy(this.receiveBuffer, 0, bytes, 0, receiveBuffer.length);
-                this.receiveBuffer = bytes;
+                this.receiveBuffer = Binary.appendBytes(buffer, this.receiveBuffer);
                 if (this.sendBuffer.length > 0) {
-                    writePacket(this.sendBuffer);
+                    this.socket.getSocket().write(ByteBuffer.wrap(this.sendBuffer));
                     this.sendBuffer = new byte[0];
                 }
             } catch (IOException e) {
@@ -132,7 +129,7 @@ public class ServerConnection {
     }
 
     public byte[] readPacket() {
-        byte[] buff = new byte[];
+        byte[] buff = new byte[2048];
         byte[] buffer = this.socket.readPacket();
         byte[] bytes = new byte[]{
                 (byte) buffer[buffer.length - 1]
@@ -171,6 +168,7 @@ public class ServerConnection {
     }
 
     public void writePacket(byte[] data) {
-        this.socket.getSocket().write(Binary.writeLInt(data.length) + data + ServerConnection.MAGIC_BYTES);
+        this.sendBuffer = Binary.appendBytes(Binary.writeLInt(data.length) + data + ServerConnection.MAGIC_BYTES);
     }
+
 }

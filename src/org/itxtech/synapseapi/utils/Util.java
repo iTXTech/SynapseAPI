@@ -2,6 +2,8 @@ package org.itxtech.synapseapi.utils;
 
 import sun.misc.BASE64Encoder;
 
+import java.nio.ByteBuffer;
+
 /**
  * Created by boybook on 16/6/25.
  */
