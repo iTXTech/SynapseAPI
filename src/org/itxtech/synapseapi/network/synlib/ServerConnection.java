@@ -130,34 +130,29 @@ public class ServerConnection {
 
     public byte[] readPacket() {
         byte[] buffer = this.socket.readPacket();
-
-
-        //// TODO: 2016/6/27  
-        /*
-        end = explode(self::MAGIC_BYTES, this.receiveBuffer, 2);
-        if(count(end) <= 2){
-            if(count(end) == 1){
-                if(strstr(end[0], self::MAGIC_BYTES)){
+        String str = Arrays.toString(buffer);
+        String[] arr = str.split(Arrays.toString(MAGIC_BYTES),2);
+        if(arr.length <= 2){
+            if(arr.length == 1){
+                if (arr[0].index >= 0) {
                     this.receiveBuffer = "";
                 }else{
-                    return null;
+                    return new byte[0];
                 }
             }else{
-                this.receiveBuffer = end[1];
+                this.receiveBuffer = arr[1].getBytes();
             }
-            buffer = end[0];
-            if(strlen(buffer) < 4){
-                return null;
+            buffer = arr[0].getBytes();
+            if(buffer.length < 4){
+                return new byte[0];
             }
-            len = Binary::readLInt(substr(buffer, 0, 4));
-            buffer = substr(buffer, 4);
-            if(len != strlen(buffer)){
-                throw new \Exception("Wrong packet buffer");
+            int len = Binary::readLInt(buffer.substring(0, 4));
+            if(len != buffer.substring(4).length()){
+                throw new Exception("Wrong packet buffer");
             }
-            return buffer;
         }
-        */
-        return buff;
+
+        return buffer;
     }
 
     public void writePacket(byte[] data) {
