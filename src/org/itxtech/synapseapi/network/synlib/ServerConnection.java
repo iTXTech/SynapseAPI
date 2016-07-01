@@ -129,16 +129,9 @@ public class ServerConnection {
     }
 
     public byte[] readPacket() {
-        byte[] buff = new byte[2048];
         byte[] buffer = this.socket.readPacket();
-        byte[] bytes = new byte[]{
-                (byte) buffer[buffer.length - 1]
-        };
-        if (bytes == ServerConnection.MAGIC_BYTES) {
-            if (buffer.length > 4) {
-                //TODO I need Packet'buffer
-            }
-        }
+
+
         //// TODO: 2016/6/27  
         /*
         end = explode(self::MAGIC_BYTES, this.receiveBuffer, 2);
