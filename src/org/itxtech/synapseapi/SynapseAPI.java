@@ -67,6 +67,11 @@ public class SynapseAPI extends PluginBase {
         this.connect();
     }
 
+    @Override
+    public void onDisable() {
+        this.shutdown();
+    }
+
     public ClientData getClientData() {
         return clientData;
     }
@@ -114,6 +119,7 @@ public class SynapseAPI extends PluginBase {
     }
 
     public void connect(){
+        this.getLogger().notice("Start to connect Synapse Server!   Address: " + this.getHash());
         this.verified = false;
         ConnectPacket pk = new ConnectPacket();
         pk.encodedPassword = Util.base64Encode(AES.encrypt(this.password, this.password));
@@ -122,12 +128,32 @@ public class SynapseAPI extends PluginBase {
         pk.maxPlayers = this.getServer().getMaxPlayers();
         pk.protocol = SynapseInfo.CURRENT_PROTOCOL;
         this.sendDataPacket(pk);
+        new Thread(new Ticker()).start();
+    }
+
+    public class Ticker implements Runnable {
+        public void run() {
+            long startTime = System.currentTimeMillis();
+            while (isEnabled()) {
+                tick();
+                long duration = System.currentTimeMillis() - startTime;
+                if (duration < 50) {
+                    try{
+                        Thread.sleep(50 - duration);
+                    } catch (InterruptedException e) {
+                        //ignore
+                    }
+                }
+                startTime = System.currentTimeMillis();
+            }
+
+        }
     }
 
     public void tick(){
         this.synapseInterface.process();
         long time = System.currentTimeMillis();
-        if((time - this.lastUpdate) >= 5){//Heartbeat!
+        if((time - this.lastUpdate) >= 5000){//Heartbeat!
             this.lastUpdate = time;
             HeartbeatPacket pk = new HeartbeatPacket();
             pk.tps = this.getServer().getTicksPerSecondAverage();
@@ -137,7 +163,7 @@ public class SynapseAPI extends PluginBase {
         }
 
         time = System.currentTimeMillis();
-        if(((time - this.lastUpdate) >= 30) && this.synapseInterface.isConnected()){//30 seconds timeout
+        if(((time - this.lastUpdate) >= 30000) && this.synapseInterface.isConnected()){//30 seconds timeout
             this.synapseInterface.reconnect();
         }
     }
