@@ -53,9 +53,10 @@ public class SynapseAPI extends PluginBase {
 
     @Override
     public void onEnable() {
+        this.saveDefaultConfig();
         enable = this.getConfig().getBoolean("enable", true);
         this.serverIp = this.getConfig().getString("server-ip", "127.0.0.1");
-        this.port = this.getConfig().getInt("server-port");
+        this.port = this.getConfig().getInt("server-port", 10305);
         this.isMainServer = this.getConfig().getBoolean("isMainServer");
         this.password = this.getConfig().getString("password");
         this.serverDescription = this.getConfig().getString("description");
