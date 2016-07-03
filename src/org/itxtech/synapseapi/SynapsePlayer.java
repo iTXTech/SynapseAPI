@@ -39,15 +39,25 @@ public class SynapsePlayer extends Player {
     }
 
     public void handleLoginPacket(PlayerLoginPacket packet){
+        if (!SynapseAPI.enable) {
+            super.handleDataPacket(packet);
+            return;
+        }
         this.isFirstTimeLogin = packet.isFirstTime;
         SynapsePlayerConnectEvent ev;
         this.server.getPluginManager().callEvent(ev = new SynapsePlayerConnectEvent(this, this.isFirstTimeLogin));
-        SynapseDataPacket pk = SynapseAPI.getInstance().getPacket(packet.cachedLoginPacket);
-        pk.decode();
-        this.handleDataPacket(pk);
+        if (!ev.isCancelled()) {
+            SynapseDataPacket pk = SynapseAPI.getInstance().getPacket(packet.cachedLoginPacket);
+            pk.decode();
+            this.handleDataPacket(pk);
+        }
     }
 
     protected void processLogin() {
+        if (!SynapseAPI.enable) {
+            super.processLogin();
+            return;
+        }
         if (this.isFirstTimeLogin) {
             super.processLogin();
         } else {
@@ -255,12 +265,19 @@ public class SynapsePlayer extends Player {
 
     @Override
     public void handleDataPacket(DataPacket packet){
+        if (!SynapseAPI.enable) {
+            super.handleDataPacket(packet);
+            return;
+        }
         this.lastPacketTime = System.currentTimeMillis();
         super.handleDataPacket(packet);
     }
 
     @Override
     public boolean onUpdate(int currentTick){
+        if (!SynapseAPI.enable) {
+            return super.onUpdate(currentTick);
+        }
         if((System.currentTimeMillis() - this.lastPacketTime) >= 5 * 60){//5 minutes time out
             this.close("", "timeout");
             return false;
@@ -272,11 +289,15 @@ public class SynapsePlayer extends Player {
         this.uuid = uuid;
     }
 
+    @Override
     public int dataPacket(DataPacket packet, boolean needACK){
+        if (!SynapseAPI.enable) return super.dataPacket(packet, needACK);
         return this.interfaz.putPacket(this, packet, needACK);
     }
 
+    @Override
     public int directDataPacket(DataPacket packet, boolean needACK){
+        if (!SynapseAPI.enable) return super.directDataPacket(packet, needACK);
         return this.interfaz.putPacket(this, packet, needACK, true);
     }
 
