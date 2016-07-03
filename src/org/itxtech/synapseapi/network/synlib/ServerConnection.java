@@ -1,10 +1,11 @@
 package org.itxtech.synapseapi.network.synlib;
 
+import cn.nukkit.Server;
 import cn.nukkit.utils.Binary;
+import org.itxtech.synapseapi.utils.Util;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.io.InputStream;
 import java.util.Arrays;
 
 /**
@@ -33,8 +34,8 @@ public class ServerConnection {
     public ServerConnection(SynapseClient server, SynapseSocket socket) {
         this.server = server;
         this.socket = socket;
-        this.ip = socket.getSocket().getInetAddress().getHostAddress();
-        this.port = socket.getSocket().getPort();
+        this.ip = socket.getSocket().socket().getInetAddress().getHostAddress();
+        this.port = socket.getSocket().socket().getPort();
 
         this.lastCheck = System.currentTimeMillis();
         this.connected = true;
@@ -49,7 +50,12 @@ public class ServerConnection {
     private void tickProcessor() {
         while (!this.server.isShutdown()) {
             long start = System.currentTimeMillis();
-            this.tick();
+            try {
+                this.tick();
+            } catch (Exception e) {
+                Server.getInstance().getLogger().alert(e.getLocalizedMessage());
+            }
+
             long time = System.currentTimeMillis();
             if (time - start < 1) {  //todo TPS ???
                 try {
@@ -59,11 +65,15 @@ public class ServerConnection {
                 }
             }
         }
-        this.tick();
+        try {
+            this.tick();
+        } catch (Exception e) {
+            Server.getInstance().getLogger().alert(e.getLocalizedMessage());
+        }
         this.socket.close();
     }
 
-    private void tick() {
+    private void tick() throws Exception {
         this.update();
         byte[] data = this.readPacket();
         while (data != null) {
@@ -91,7 +101,7 @@ public class ServerConnection {
         return socket;
     }
 
-    public void update() {
+    public void update() throws Exception {
         if (this.server.needReconnect && this.connected) {
             this.connected = false;
             this.server.needReconnect = false;
@@ -128,14 +138,14 @@ public class ServerConnection {
         }
     }
 
-    public byte[] readPacket() {
+    public byte[] readPacket() throws Exception {
         byte[] buffer = this.socket.readPacket();
         String str = Arrays.toString(buffer);
         String[] arr = str.split(Arrays.toString(MAGIC_BYTES),2);
         if(arr.length <= 2){
             if(arr.length == 1){
-                if (arr[0].index >= 0) {
-                    this.receiveBuffer = "";
+                if (arr[0].length() >= 0) {
+                    this.receiveBuffer = new byte[0];
                 }else{
                     return new byte[0];
                 }
@@ -146,8 +156,8 @@ public class ServerConnection {
             if(buffer.length < 4){
                 return new byte[0];
             }
-            int len = Binary::readLInt(buffer.substring(0, 4));
-            if(len != buffer.substring(4).length()){
+            int len = Binary.readLInt(Arrays.copyOfRange(buffer, 0, 4));
+            if(len != Arrays.copyOfRange(buffer, 4, buffer.length).length){
                 throw new Exception("Wrong packet buffer");
             }
         }
@@ -156,7 +166,8 @@ public class ServerConnection {
     }
 
     public void writePacket(byte[] data) {
-        this.sendBuffer = Binary.appendBytes(Binary.writeLInt(data.length) + data + ServerConnection.MAGIC_BYTES);
+        byte[] buffer = Util.concatByte(Binary.writeLInt(data.length), data, ServerConnection.MAGIC_BYTES);
+        this.sendBuffer = Binary.appendBytes(buffer);
     }
 
 }

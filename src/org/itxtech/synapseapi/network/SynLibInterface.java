@@ -47,7 +47,7 @@ public class SynLibInterface implements SourceInterface {
         pk.direct = immediate;
         pk.mcpeBuffer = packet.getBuffer();
         this.synapseInterface.putPacket(pk);
-        return ???;
+        return 0;  //这个返回值在nk中并没有被用到
     }
 
     @Override
