@@ -74,14 +74,14 @@ public class ServerConnection {
     }
 
     private void tick() throws Exception {
-        this.update();
-        byte[] data = this.readPacket();
-        while (data != null) {
-            this.server.pushThreadToMainPacket(data);
-        }
-        byte[] data1 = this.server.readMainToThreadPacket();
-        while (data1.length > 0) {
-            this.writePacket(data1);
+        if(this.update()) {
+            byte[] data;
+            while ((data = this.readPacket()).length > 0) {
+                this.server.pushThreadToMainPacket(data);
+            }
+            while ((data = this.server.readMainToThreadPacket()).length > 0) {
+                this.writePacket(data);
+            }
         }
     }
 
@@ -101,26 +101,29 @@ public class ServerConnection {
         return socket;
     }
 
-    public void update() throws Exception {
+    public boolean update() throws Exception {
         if (this.server.needReconnect && this.connected) {
             this.connected = false;
             this.server.needReconnect = false;
         }
         if (this.connected) {
             try {
+                byte[] buffer = this.socket.readPacket();
+                this.receiveBuffer = Binary.appendBytes(buffer, this.receiveBuffer);
                 if (this.sendBuffer.length > 0) {
                     this.socket.getSocket().write(ByteBuffer.wrap(this.sendBuffer));
                     this.sendBuffer = new byte[0];
                 }
-                byte[] buffer = readPacket();
-                this.receiveBuffer = Binary.appendBytes(buffer, this.receiveBuffer);
+                return true;
             } catch (IOException e) {
                 int err = e.hashCode();  //todo ??????
                 if (err == 10057 || err == 10054) {
                     this.server.getLogger().error("Synapse connection has disconnected unexpectedly");
                     this.connected = false;
                     this.server.setConnected(false);
+                    this.server.setNeedAuth(true);
                 }
+                return false;
             }
         } else {
             long time;
@@ -134,12 +137,12 @@ public class ServerConnection {
                 }
                 this.lastCheck = time;
             }
+            return false;
         }
     }
 
     public byte[] readPacket() throws Exception {
-        byte[] buffer = this.socket.readPacket();
-        String str = Arrays.toString(buffer);
+        String str = Arrays.toString(this.receiveBuffer);
         String[] arr = str.split(Arrays.toString(MAGIC_BYTES),2);
         if(arr.length <= 2){
             if(arr.length == 1){
@@ -151,6 +154,7 @@ public class ServerConnection {
             }else{
                 this.receiveBuffer = arr[1].getBytes();
             }
+            byte[] buffer;
             buffer = arr[0].getBytes();
             if(buffer.length < 4){
                 return new byte[0];
@@ -159,9 +163,9 @@ public class ServerConnection {
             if(len != Arrays.copyOfRange(buffer, 4, buffer.length).length){
                 throw new Exception("Wrong packet buffer");
             }
+            return buffer;
         }
-
-        return buffer;
+        return new byte[0];
     }
 
     public void writePacket(byte[] data) {System.out.println("Send!");

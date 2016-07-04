@@ -1,11 +1,8 @@
 package org.itxtech.synapseapi;
 
 import cn.nukkit.Nukkit;
-import cn.nukkit.event.player.PlayerLoginEvent;
 import cn.nukkit.network.protocol.DataPacket;
-import cn.nukkit.network.protocol.LoginPacket;
 import cn.nukkit.plugin.PluginBase;
-import cn.nukkit.utils.Config;
 import com.google.gson.Gson;
 import org.itxtech.synapseapi.network.SynLibInterface;
 import org.itxtech.synapseapi.network.SynapseInterface;
@@ -13,7 +10,6 @@ import org.itxtech.synapseapi.network.protocol.spp.*;
 import org.itxtech.synapseapi.utils.AES;
 import org.itxtech.synapseapi.utils.ClientData;
 import org.itxtech.synapseapi.utils.Util;
-import sun.misc.BASE64Encoder;
 
 import java.util.HashMap;
 import java.util.Map;
