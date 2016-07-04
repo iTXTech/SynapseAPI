@@ -21,7 +21,7 @@ public class AES {
         try {
             byte[] raw = sKey.getBytes("utf-8");
             SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");//"算法/模式/补码方式"
+            Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");//"算法/模式/补码方式"
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
             return cipher.doFinal(sSrc.getBytes("utf-8"));
         }catch (Exception e){
@@ -35,7 +35,7 @@ public class AES {
         try {
             byte[] raw = sKey.getBytes("utf-8");
             SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+            Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, skeySpec);
             try {
                 byte[] original = cipher.doFinal(sSrc);
