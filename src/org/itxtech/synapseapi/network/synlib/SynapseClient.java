@@ -15,7 +15,7 @@ public class SynapseClient extends Thread {
     private ThreadedLogger logger;
     private String interfaz;
     private int port;
-    private boolean shutdown = true;
+    private boolean shutdown = false;
     protected ConcurrentLinkedQueue<byte[]> externalQueue;
     protected ConcurrentLinkedQueue<byte[]> internalQueue;
     private String mainPath;
@@ -39,6 +39,7 @@ public class SynapseClient extends Thread {
         this.internalQueue = new ConcurrentLinkedQueue<>();
         this.mainPath = Nukkit.PATH;
 
+        this.start();
     }
 
     public void reconnect() {
@@ -110,7 +111,6 @@ public class SynapseClient extends Thread {
     }
 
     public void run() {
-        //this.registerClassLoader();
         Runtime.getRuntime().addShutdownHook(new ShutdownHandler());
         try {
             SynapseSocket socket = new SynapseSocket(this.getLogger(), this.port, this.interfaz);

@@ -108,12 +108,12 @@ public class ServerConnection {
         }
         if (this.connected) {
             try {
-                byte[] buffer = readPacket();
-                this.receiveBuffer = Binary.appendBytes(buffer, this.receiveBuffer);
                 if (this.sendBuffer.length > 0) {
                     this.socket.getSocket().write(ByteBuffer.wrap(this.sendBuffer));
                     this.sendBuffer = new byte[0];
                 }
+                byte[] buffer = readPacket();
+                this.receiveBuffer = Binary.appendBytes(buffer, this.receiveBuffer);
             } catch (IOException e) {
                 int err = e.hashCode();  //todo ??????
                 if (err == 10057 || err == 10054) {
@@ -128,7 +128,6 @@ public class ServerConnection {
                 this.server.getLogger().notice("Trying to re-connect to Synapse Server");
                 if (this.socket.connect()) {
                     this.connected = true;
-                    this.ip = "127.0.0.1";
                     this.port = this.socket.getPort();
                     this.server.setConnected(true);
                     this.server.setNeedAuth(true);
@@ -165,7 +164,7 @@ public class ServerConnection {
         return buffer;
     }
 
-    public void writePacket(byte[] data) {
+    public void writePacket(byte[] data) {System.out.println("Send!");
         byte[] buffer = Util.concatByte(Binary.writeLInt(data.length), data, ServerConnection.MAGIC_BYTES);
         this.sendBuffer = Binary.appendBytes(buffer);
     }

@@ -6,8 +6,6 @@ import java.net.*;
 import java.nio.channels.*;
 import java.nio.*;
 import java.io.*;
-import java.nio.charset.*;
-import java.util.*;
 
 /**
  * Created by boybook on 16/6/24.
@@ -42,11 +40,11 @@ public class SynapseSocket {
     public boolean connect() {
         try {
             this.selector = Selector.open();
-            InetSocketAddress isa = new InetSocketAddress("127.0.0.1", this.port);
+            InetSocketAddress isa = new InetSocketAddress(this.interfaz, this.port);
             this.socket = SocketChannel.open(isa);
             this.socket.configureBlocking(false);
-            this.socket.register(selector, SelectionKey.OP_READ);
-            //todo unblock???
+            this.socket.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT);
+            this.logger.notice("SynapseAPI has connected to " + this.interfaz + ":" + this.port);
         } catch (IOException e) {
             this.logger.critical("Synapse Client can't connect " + this.interfaz + ":" + this.port);
             this.logger.error("Socket error: " + e.getMessage());
@@ -69,15 +67,15 @@ public class SynapseSocket {
             if (selector.select() > 0) {
                 for (SelectionKey sk : selector.selectedKeys()) {
                     selector.selectedKeys().remove(sk);
-                    if (sk.isReadable()) {
-                        SocketChannel sc = (SocketChannel) sk.channel();
-                        ByteBuffer buff = ByteBuffer.allocate(2048);
-                        while (sc.read(buff) > 0) {
-                            sc.read(buff);
-                            buff.flip();
-                        }
-                        sk.interestOps(SelectionKey.OP_READ);
-                        buffer = buff.array();
+                    if (sk.isReadable()) {System.out.println("5");
+                        SocketChannel sc = (SocketChannel) sk.channel();System.out.println("6");
+                        ByteBuffer buff = ByteBuffer.allocate(2048);System.out.println("7");
+                        while (sc.read(buff) > 0) {System.out.println("8");
+                            sc.read(buff);System.out.println("9");
+                            buff.flip();System.out.println("10");
+                        }System.out.println("2");
+                        sk.interestOps(SelectionKey.OP_READ);System.out.println("11");
+                        buffer = buff.array();System.out.println("12");
                     }
                 }
             }
@@ -86,6 +84,7 @@ public class SynapseSocket {
         }
         return buffer;
     }
+
     public void close() {
         try {
             this.socket.close();

@@ -171,7 +171,7 @@ public class SynapseAPI extends PluginBase {
     public SynapseDataPacket getPacket(byte[] buffer){
         byte pid = buffer[0];
         byte start = 1;
-        if(pid == 0xfe){
+        if(pid == (byte) 0xfe){
             pid = buffer[1];
             start++;
         }
