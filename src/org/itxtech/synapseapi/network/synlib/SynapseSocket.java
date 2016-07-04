@@ -53,36 +53,16 @@ public class SynapseSocket {
         return true;
     }
 
+    public Selector getSelector(){
+        return this.selector;
+    }
+
     public SocketChannel getSocket() {
         return this.socket;
     }
 
     public int getPort() {
         return this.port;
-    }
-
-    public byte[] readPacket() {
-        byte[] buffer = new byte[2048];
-        try {
-            if (selector.select() > 0) {
-                for (SelectionKey sk : selector.selectedKeys()) {
-                    selector.selectedKeys().remove(sk);
-                    if (sk.isReadable()) {
-                        SocketChannel sc = (SocketChannel) sk.channel();
-                        ByteBuffer buff = ByteBuffer.allocate(2048);
-                        while (sc.read(buff) > 0) {
-                            sc.read(buff);
-                            buff.flip();
-                        }
-                        sk.interestOps(SelectionKey.OP_READ);
-                        buffer = buff.array();
-                    }
-                }
-            }
-        } catch (IOException e) {
-            this.logger.error("ReadPacket error: " + e.getMessage());
-        }
-        return buffer;
     }
 
     public void close() {

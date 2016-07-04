@@ -6,6 +6,9 @@ import org.itxtech.synapseapi.utils.Util;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 
 /**
@@ -74,24 +77,24 @@ public class ServerConnection {
     }
 
     private void tick() throws Exception {
-        if(this.update()) {
-            while(this.receivePacket());
-            while(this.sendPacket());
+        if (this.update()) {
+            while (this.receivePacket()) ;
+            while (this.sendPacket()) ;
         }
     }
 
-    private boolean receivePacket() throws Exception{
+    private boolean receivePacket() throws Exception {
         byte[] packet = this.readPacket();
-        if(packet != null && packet.length > 0){
+        if (packet != null && packet.length > 0) {
             this.server.pushThreadToMainPacket(packet);
             return true;
         }
         return false;
     }
 
-    private boolean sendPacket() throws Exception{
+    private boolean sendPacket() throws Exception {
         byte[] packet = this.server.readMainToThreadPacket();
-        if(packet != null && packet.length > 0){
+        if (packet != null && packet.length > 0) {
             this.writePacket(packet);
             return true;
         }
@@ -121,8 +124,24 @@ public class ServerConnection {
         }
         if (this.connected) {
             try {
-                byte[] buffer = this.socket.readPacket();
-                if(buffer.length > 0){
+                byte[] buffer = new byte[2048];
+                Selector selector = this.socket.getSelector();
+                if (selector.select() > 0) {
+                    for (SelectionKey sk : selector.selectedKeys()) {
+                        selector.selectedKeys().remove(sk);
+                        if (sk.isReadable()) {
+                            SocketChannel sc = (SocketChannel) sk.channel();
+                            ByteBuffer buff = ByteBuffer.allocate(2048);
+                            while (sc.read(buff) > 0) {
+                                sc.read(buff);
+                                buff.flip();
+                            }
+                            sk.interestOps(SelectionKey.OP_READ);
+                            buffer = buff.array();
+                        }
+                    }
+                }
+                if (buffer.length > 0) {
                     this.receiveBuffer = Binary.appendBytes(buffer, this.receiveBuffer);
                 }
                 if (this.sendBuffer.length > 0) {
@@ -131,13 +150,9 @@ public class ServerConnection {
                 }
                 return true;
             } catch (IOException e) {
-                int err = e.hashCode();  //todo ??????
-                if (err == 10057 || err == 10054) {
-                    this.server.getLogger().error("Synapse connection has disconnected unexpectedly");
-                    this.connected = false;
-                    this.server.setConnected(false);
-                    this.server.setNeedAuth(true);
-                }
+                this.server.getLogger().error("Synapse connection has disconnected unexpectedly");
+                this.connected = false;
+                this.server.setConnected(false);
                 return false;
             }
         } else {
@@ -158,24 +173,24 @@ public class ServerConnection {
 
     public byte[] readPacket() throws Exception {
         String str = Arrays.toString(this.receiveBuffer);
-        String[] arr = str.split(Arrays.toString(MAGIC_BYTES),2);
-        if(arr.length <= 2){
-            if(arr.length == 1){
+        String[] arr = str.split(Arrays.toString(MAGIC_BYTES), 2);
+        if (arr.length <= 2) {
+            if (arr.length == 1) {
                 if (arr[0].length() >= 0) {
                     this.receiveBuffer = new byte[0];
-                }else{
+                } else {
                     return new byte[0];
                 }
-            }else{
+            } else {
                 this.receiveBuffer = arr[1].getBytes();
             }
             byte[] buffer;
             buffer = arr[0].getBytes();
-            if(buffer.length < 4){
+            if (buffer.length < 4) {
                 return new byte[0];
             }
             int len = Binary.readLInt(Arrays.copyOfRange(buffer, 0, 4));
-            if(len != Arrays.copyOfRange(buffer, 4, buffer.length).length){
+            if (len != Arrays.copyOfRange(buffer, 4, buffer.length).length) {
                 throw new Exception("Wrong packet buffer");
             }
             return buffer;
