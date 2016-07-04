@@ -67,15 +67,15 @@ public class SynapseSocket {
             if (selector.select() > 0) {
                 for (SelectionKey sk : selector.selectedKeys()) {
                     selector.selectedKeys().remove(sk);
-                    if (sk.isReadable()) {System.out.println("5");
-                        SocketChannel sc = (SocketChannel) sk.channel();System.out.println("6");
-                        ByteBuffer buff = ByteBuffer.allocate(2048);System.out.println("7");
-                        while (sc.read(buff) > 0) {System.out.println("8");
-                            sc.read(buff);System.out.println("9");
-                            buff.flip();System.out.println("10");
-                        }System.out.println("2");
-                        sk.interestOps(SelectionKey.OP_READ);System.out.println("11");
-                        buffer = buff.array();System.out.println("12");
+                    if (sk.isReadable()) {
+                        SocketChannel sc = (SocketChannel) sk.channel();
+                        ByteBuffer buff = ByteBuffer.allocate(2048);
+                        while (sc.read(buff) > 0) {
+                            sc.read(buff);
+                            buff.flip();
+                        }
+                        sk.interestOps(SelectionKey.OP_READ);
+                        buffer = buff.array();
                     }
                 }
             }

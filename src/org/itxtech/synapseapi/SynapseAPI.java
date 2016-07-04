@@ -118,7 +118,7 @@ public class SynapseAPI extends PluginBase {
         this.getLogger().notice("Start to connect Synapse Server!   Address: " + this.getHash());
         this.verified = false;
         ConnectPacket pk = new ConnectPacket();
-        pk.encodedPassword = Util.base64Encode(AES.encrypt(this.password, this.password));
+        pk.encodedPassword = Util.base64Encode(AES.Encrypt(this.password, this.password));
         pk.isMainServer = this.isMainServer();
         pk.description = this.serverDescription;
         pk.maxPlayers = this.getServer().getMaxPlayers();

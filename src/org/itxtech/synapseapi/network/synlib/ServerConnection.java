@@ -53,7 +53,7 @@ public class ServerConnection {
             try {
                 this.tick();
             } catch (Exception e) {
-                Server.getInstance().getLogger().alert(e.getLocalizedMessage());
+                Server.getInstance().getLogger().logException(e);
             }
 
             long time = System.currentTimeMillis();
@@ -68,21 +68,34 @@ public class ServerConnection {
         try {
             this.tick();
         } catch (Exception e) {
-            Server.getInstance().getLogger().alert(e.getLocalizedMessage());
+            Server.getInstance().getLogger().logException(e);
         }
         this.socket.close();
     }
 
     private void tick() throws Exception {
         if(this.update()) {
-            byte[] data;
-            while ((data = this.readPacket()).length > 0) {
-                this.server.pushThreadToMainPacket(data);
-            }
-            while ((data = this.server.readMainToThreadPacket()).length > 0) {
-                this.writePacket(data);
-            }
+            while(this.receivePacket());
+            while(this.sendPacket());
         }
+    }
+
+    private boolean receivePacket() throws Exception{
+        byte[] packet = this.readPacket();
+        if(packet != null && packet.length > 0){
+            this.server.pushThreadToMainPacket(packet);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean sendPacket() throws Exception{
+        byte[] packet = this.server.readMainToThreadPacket();
+        if(packet != null && packet.length > 0){
+            this.writePacket(packet);
+            return true;
+        }
+        return false;
     }
 
     public String getHash() {
@@ -109,7 +122,9 @@ public class ServerConnection {
         if (this.connected) {
             try {
                 byte[] buffer = this.socket.readPacket();
-                this.receiveBuffer = Binary.appendBytes(buffer, this.receiveBuffer);
+                if(buffer.length > 0){
+                    this.receiveBuffer = Binary.appendBytes(buffer, this.receiveBuffer);
+                }
                 if (this.sendBuffer.length > 0) {
                     this.socket.getSocket().write(ByteBuffer.wrap(this.sendBuffer));
                     this.sendBuffer = new byte[0];
@@ -168,9 +183,8 @@ public class ServerConnection {
         return new byte[0];
     }
 
-    public void writePacket(byte[] data) {System.out.println("Send!");
+    public void writePacket(byte[] data) {
         byte[] buffer = Util.concatByte(Binary.writeLInt(data.length), data, ServerConnection.MAGIC_BYTES);
-        this.sendBuffer = Binary.appendBytes(buffer);
+        this.sendBuffer = Binary.appendBytes(buffer, this.sendBuffer);
     }
-
 }
