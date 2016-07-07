@@ -86,6 +86,7 @@ public class ServerConnection {
     private boolean receivePacket() throws Exception {
         byte[] packet = this.readPacket();
         if (packet != null && packet.length > 0) {
+            this.server.getLogger().debug("pushThreadToMainPacket: " + packet.length);
             this.server.pushThreadToMainPacket(packet);
             return true;
         }
@@ -95,6 +96,7 @@ public class ServerConnection {
     private boolean sendPacket() throws Exception {
         byte[] packet = this.server.readMainToThreadPacket();
         if (packet != null && packet.length > 0) {
+            this.server.getLogger().debug("pushMainToThreadPacket: " + packet.length);
             this.writePacket(packet);
             return true;
         }
@@ -172,20 +174,22 @@ public class ServerConnection {
     }
 
     public byte[] readPacket() throws Exception {
-        String str = Arrays.toString(this.receiveBuffer);
-        String[] arr = str.split(Arrays.toString(MAGIC_BYTES), 2);
+        String str = Util.bytesToHexString(this.receiveBuffer);
+        String[] arr = str.split(Util.bytesToHexString(MAGIC_BYTES), 2);
+        this.server.getLogger().debug("array length: " + arr.length);
         if (arr.length <= 2) {
             if (arr.length == 1) {
-                if (arr[0].length() >= 0) {
+                if (arr[0].endsWith(Util.bytesToHexString(MAGIC_BYTES))) {
                     this.receiveBuffer = new byte[0];
                 } else {
                     return new byte[0];
                 }
             } else {
-                this.receiveBuffer = arr[1].getBytes();
+                this.receiveBuffer = Util.hexStringToBytes(arr[1]);
             }
             byte[] buffer;
-            buffer = arr[0].getBytes();
+            buffer = Util.hexStringToBytes(arr[0]);
+            this.server.getLogger().debug("buffer length: " + buffer.length);
             if (buffer.length < 4) {
                 return new byte[0];
             }
@@ -202,4 +206,5 @@ public class ServerConnection {
         byte[] buffer = Util.concatByte(Binary.writeLInt(data.length), data, ServerConnection.MAGIC_BYTES);
         this.sendBuffer = Binary.appendBytes(buffer, this.sendBuffer);
     }
+
 }
