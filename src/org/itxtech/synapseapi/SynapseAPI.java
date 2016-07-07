@@ -55,6 +55,12 @@ public class SynapseAPI extends PluginBase {
         this.port = this.getConfig().getInt("server-port", 10305);
         this.isMainServer = this.getConfig().getBoolean("isMainServer");
         this.password = this.getConfig().getString("password");
+        if (this.password.length() != 16) {
+            this.getLogger().warning("You must use a 16 bit length key!");
+            this.getLogger().warning("The SynapseAPI will not be enabled!");
+            this.setEnabled(false);
+            return;
+        }
         this.serverDescription = this.getConfig().getString("description");
         this.synapseInterface = new SynapseInterface(this, this.serverIp, this.port);
         this.synLibInterface = new SynLibInterface(this, this.synapseInterface);
