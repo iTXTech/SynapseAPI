@@ -160,12 +160,11 @@ public class SynapseAPI extends PluginBase {
         this.synapseInterface.process();
         long time = System.currentTimeMillis();
         if((time - this.lastUpdate) >= 5000){//Heartbeat!
-            this.getLogger().debug("Heartbeat!");
             this.lastUpdate = time;
             HeartbeatPacket pk = new HeartbeatPacket();
             pk.tps = this.getServer().getTicksPerSecondAverage();
             pk.load = this.getServer().getTickUsageAverage();
-            pk.upTime = System.currentTimeMillis() - Nukkit.START_TIME;
+            pk.upTime = (System.currentTimeMillis() - Nukkit.START_TIME) / 1000;
             this.sendDataPacket(pk);
         }
 
@@ -205,17 +204,17 @@ public class SynapseAPI extends PluginBase {
     }
     
     public void handleDataPacket(DataPacket pk){
-        this.getLogger().debug("Received packet " + pk.pid() + " from {this.serverIp}:{this.port}");
+        this.getLogger().debug("Received packet " + pk.pid() + " from " + this.serverIp + ":" + this.port);
         switch(pk.pid()){
             case SynapseInfo.INFORMATION_PACKET:
                 InformationPacket pk0 = (InformationPacket)pk;
                 switch(pk0.type){
                     case InformationPacket.TYPE_LOGIN:
                         if (pk0.message.equals(InformationPacket.INFO_LOGIN_SUCCESS)){
-                            this.getLogger().info("Login success to " + this.serverIp + ":" + this.port);
+                            this.getLogger().notice("Login success to " + this.serverIp + ":" + this.port);
                             this.verified = true;
                         } else if(pk0.message.equals(InformationPacket.INFO_LOGIN_FAILED)){
-                        this.getLogger().info("Login failed to " + this.serverIp + ":" + this.port);
+                        this.getLogger().notice("Login failed to " + this.serverIp + ":" + this.port);
                     }
                     break;
                     case InformationPacket.TYPE_CLIENT_DATA:

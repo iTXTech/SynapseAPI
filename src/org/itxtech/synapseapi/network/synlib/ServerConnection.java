@@ -2,6 +2,7 @@ package org.itxtech.synapseapi.network.synlib;
 
 import cn.nukkit.Server;
 import cn.nukkit.utils.Binary;
+import cn.nukkit.utils.TextFormat;
 import org.itxtech.synapseapi.utils.Util;
 
 import java.io.IOException;
@@ -77,7 +78,8 @@ public class ServerConnection {
     }
 
     private void tick() throws Exception {
-        if (this.update()) {
+        boolean suc = this.update();
+        if (suc) {
             while (this.receivePacket()) ;
             while (this.sendPacket()) ;
         }
@@ -86,7 +88,6 @@ public class ServerConnection {
     private boolean receivePacket() throws Exception {
         byte[] packet = this.readPacket();
         if (packet != null && packet.length > 0) {
-            this.server.getLogger().debug("pushThreadToMainPacket: " + packet.length);
             this.server.pushThreadToMainPacket(packet);
             return true;
         }
@@ -96,7 +97,6 @@ public class ServerConnection {
     private boolean sendPacket() throws Exception {
         byte[] packet = this.server.readMainToThreadPacket();
         if (packet != null && packet.length > 0) {
-            this.server.getLogger().debug("pushMainToThreadPacket: " + packet.length);
             this.writePacket(packet);
             return true;
         }
@@ -128,7 +128,7 @@ public class ServerConnection {
             try {
                 byte[] buffer = new byte[2048];
                 Selector selector = this.socket.getSelector();
-                if (selector.select() > 0) {
+                if (selector.select() > 0) {  //TODO: 这个方法导致了堵塞 !!!!!!!!!!!!
                     for (SelectionKey sk : selector.selectedKeys()) {
                         selector.selectedKeys().remove(sk);
                         if (sk.isReadable()) {
@@ -192,10 +192,12 @@ public class ServerConnection {
                 return new byte[0];
             }
             int len = Binary.readLInt(Arrays.copyOfRange(buffer, 0, 4));
-            if (len != Arrays.copyOfRange(buffer, 4, buffer.length).length) {
+            byte[] real = Arrays.copyOfRange(buffer, 4, buffer.length);
+            if (len != real.length) {
                 throw new Exception("Wrong packet buffer");
             }
-            return buffer;
+            System.out.println(Arrays.toString(buffer));
+            return real;
         }
         return new byte[0];
     }

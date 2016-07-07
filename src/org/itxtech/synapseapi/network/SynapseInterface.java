@@ -79,6 +79,7 @@ public class SynapseInterface {
         }
         return null;
     }
+
     public void handlePacket(byte[] buffer){
         SynapseDataPacket pk;
         if((pk = this.getPacket(buffer)) != null){
