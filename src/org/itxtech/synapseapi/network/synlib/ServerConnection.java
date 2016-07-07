@@ -78,8 +78,7 @@ public class ServerConnection {
     }
 
     private void tick() throws Exception {
-        boolean suc = this.update();
-        if (suc) {
+        if (this.update()) {
             while (this.receivePacket()) ;
             while (this.sendPacket()) ;
         }
@@ -196,7 +195,6 @@ public class ServerConnection {
             if (len != real.length) {
                 throw new Exception("Wrong packet buffer");
             }
-            System.out.println(Arrays.toString(buffer));
             return real;
         }
         return new byte[0];
