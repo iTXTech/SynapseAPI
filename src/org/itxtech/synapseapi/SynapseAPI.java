@@ -51,6 +51,11 @@ public class SynapseAPI extends PluginBase {
     public void onEnable() {
         this.saveDefaultConfig();
         enable = this.getConfig().getBoolean("enable", true);
+        if (!enable) {
+            this.getLogger().warning("The SynapseAPI is not be enabled!");
+            this.setEnabled(false);
+            return;
+        }
         this.serverIp = this.getConfig().getString("server-ip", "127.0.0.1");
         this.port = this.getConfig().getInt("server-port", 10305);
         this.isMainServer = this.getConfig().getBoolean("isMainServer");
@@ -148,7 +153,6 @@ public class SynapseAPI extends PluginBase {
                 }
                 startTime = System.currentTimeMillis();
             }
-
         }
     }
 
@@ -156,6 +160,7 @@ public class SynapseAPI extends PluginBase {
         this.synapseInterface.process();
         long time = System.currentTimeMillis();
         if((time - this.lastUpdate) >= 5000){//Heartbeat!
+            this.getLogger().debug("Heartbeat!");
             this.lastUpdate = time;
             HeartbeatPacket pk = new HeartbeatPacket();
             pk.tps = this.getServer().getTicksPerSecondAverage();

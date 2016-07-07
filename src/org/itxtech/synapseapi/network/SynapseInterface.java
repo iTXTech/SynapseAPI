@@ -55,11 +55,12 @@ public class SynapseInterface {
 
     public void process(){
         byte[] buffer = this.client.readThreadToMainPacket();
-        if (buffer != null){
-            while (buffer.length > 0) {
-                this.handlePacket(buffer);
-            }
+
+        while (buffer != null && buffer.length > 0) {
+            this.handlePacket(buffer);
+            buffer = this.client.readThreadToMainPacket();
         }
+
         this.connected = this.client.isConnected();
         if (this.client.isNeedAuth()) {
             this.synapse.connect();

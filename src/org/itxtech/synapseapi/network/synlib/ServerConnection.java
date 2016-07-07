@@ -176,7 +176,6 @@ public class ServerConnection {
     public byte[] readPacket() throws Exception {
         String str = Util.bytesToHexString(this.receiveBuffer);
         String[] arr = str.split(Util.bytesToHexString(MAGIC_BYTES), 2);
-        this.server.getLogger().debug("array length: " + arr.length);
         if (arr.length <= 2) {
             if (arr.length == 1) {
                 if (arr[0].endsWith(Util.bytesToHexString(MAGIC_BYTES))) {
@@ -189,7 +188,6 @@ public class ServerConnection {
             }
             byte[] buffer;
             buffer = Util.hexStringToBytes(arr[0]);
-            this.server.getLogger().debug("buffer length: " + buffer.length);
             if (buffer.length < 4) {
                 return new byte[0];
             }
