@@ -1,10 +1,15 @@
 package org.itxtech.synapseapi;
 
 import cn.nukkit.Nukkit;
+import cn.nukkit.Player;
+import cn.nukkit.Server;
+import cn.nukkit.event.player.PlayerCreationEvent;
+import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.Utils;
 import com.google.gson.Gson;
+import org.itxtech.synapseapi.event.player.SynapsePlayerCreationEvent;
 import org.itxtech.synapseapi.network.SynLibInterface;
 import org.itxtech.synapseapi.network.SynapseInterface;
 import org.itxtech.synapseapi.network.protocol.spp.*;
@@ -12,6 +17,8 @@ import org.itxtech.synapseapi.utils.AES;
 import org.itxtech.synapseapi.utils.ClientData;
 import org.itxtech.synapseapi.utils.Util;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -64,6 +71,7 @@ public class SynapseAPI extends PluginBase {
         if (this.password.length() != 16) {
             this.getLogger().warning("You must use a 16 bit length key!");
             this.getLogger().warning("The SynapseAPI will not be enabled!");
+            enable = false;
             this.setEnabled(false);
             return;
         }
@@ -226,10 +234,19 @@ public class SynapseAPI extends PluginBase {
                 break;
             case SynapseInfo.PLAYER_LOGIN_PACKET:
                 PlayerLoginPacket pk1 = (PlayerLoginPacket)pk;
-                SynapsePlayer player = new SynapsePlayer(this.synLibInterface, new Random().nextLong(), pk1.address, pk1.port);
-                player.setUniqueId(pk1.uuid);
-                this.players.put(pk1.uuid, player);
-                player.handleLoginPacket(pk1);
+                SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer.class, SynapsePlayer.class, new Random().nextLong(), pk1.address, pk1.port);
+                this.getServer().getPluginManager().callEvent(ev);
+                Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
+                try {
+                    Constructor constructor = clazz.getConstructor(SourceInterface.class, Long.class, String.class, int.class);
+                    SynapsePlayer player = (SynapsePlayer) constructor.newInstance(this.synLibInterface, ev.getClientId(), ev.getAddress(), ev.getPort());
+                    player.setUniqueId(pk1.uuid);
+                    this.players.put(pk1.uuid, player);
+                    this.getServer().addPlayer(pk1.uuid.toString(), player);
+                    player.handleLoginPacket(pk1);
+                } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+                    Server.getInstance().getLogger().logException(e);
+                }
                 break;
             case SynapseInfo.REDIRECT_PACKET:
                 RedirectPacket pk2 = (RedirectPacket)pk;
