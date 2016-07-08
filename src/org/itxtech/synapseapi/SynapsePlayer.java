@@ -38,10 +38,6 @@ public class SynapsePlayer extends Player {
     }
 
     public void handleLoginPacket(PlayerLoginPacket packet){
-        if (!SynapseAPI.enable) {
-            super.handleDataPacket(packet);
-            return;
-        }
         this.isFirstTimeLogin = packet.isFirstTime;
         SynapsePlayerConnectEvent ev;
         this.server.getPluginManager().callEvent(ev = new SynapsePlayerConnectEvent(this, this.isFirstTimeLogin));
@@ -53,11 +49,7 @@ public class SynapsePlayer extends Player {
     }
 
     protected void processLogin() {
-        if (!SynapseAPI.enable) {
-            super.processLogin();
-            return;
-        }
-        if (this.isFirstTimeLogin) {
+        if (!SynapseAPI.enable || this.isFirstTimeLogin) {
             super.processLogin();
         } else {
             if (!this.server.isWhitelisted((this.getName()).toLowerCase())) {
@@ -239,7 +231,6 @@ public class SynapsePlayer extends Player {
 
             this.server.onPlayerLogin(this);
         }
-
     }
 
     public void transfer(String hash){
