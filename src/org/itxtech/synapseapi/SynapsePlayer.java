@@ -272,7 +272,7 @@ public class SynapsePlayer extends Player {
         if (!SynapseAPI.enable) {
             return super.onUpdate(currentTick);
         }
-        if((System.currentTimeMillis() - this.lastPacketTime) >= 5 * 60){//5 minutes time out
+        if((System.currentTimeMillis() - this.lastPacketTime) >= 5 * 60 * 1000){//5 minutes time out
             this.close("", "timeout");
             return false;
         }
