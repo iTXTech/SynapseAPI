@@ -6,12 +6,14 @@ import cn.nukkit.Server;
 import cn.nukkit.event.player.PlayerCreationEvent;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.DataPacket;
+import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.Utils;
 import com.google.gson.Gson;
 import org.itxtech.synapseapi.event.player.SynapsePlayerCreationEvent;
 import org.itxtech.synapseapi.network.SynLibInterface;
 import org.itxtech.synapseapi.network.SynapseInterface;
+import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 import org.itxtech.synapseapi.network.protocol.spp.*;
 import org.itxtech.synapseapi.utils.AES;
 import org.itxtech.synapseapi.utils.ClientData;
@@ -57,6 +59,7 @@ public class SynapseAPI extends PluginBase {
 
     @Override
     public void onEnable() {
+        this.getServer().getNetwork().registerPacket(ProtocolInfo.SET_HEALTH_PACKET, SetHealthPacket.class);
         this.saveDefaultConfig();
         enable = this.getConfig().getBoolean("enable", true);
         if (!enable) {
