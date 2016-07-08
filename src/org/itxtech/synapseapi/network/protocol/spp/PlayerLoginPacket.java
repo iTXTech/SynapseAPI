@@ -27,14 +27,16 @@ public class PlayerLoginPacket extends SynapseDataPacket {
         this.putString(this.address);
         this.putInt(this.port);
         this.putByte(this.isFirstTime ? (byte)1 : (byte)0);
+        this.putShort(this.cachedLoginPacket.length);
         this.put(this.cachedLoginPacket);
     }
     
     @Override
     public void decode(){
+        this.uuid = this.getUUID();
         this.address = this.getString();
         this.port = this.getInt();
         this.isFirstTime = this.getByte() == 1;
-        this.cachedLoginPacket = this.get();
+        this.cachedLoginPacket = this.get(this.getShort());
     }
 }

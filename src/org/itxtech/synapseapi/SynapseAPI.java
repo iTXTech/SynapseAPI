@@ -3,6 +3,7 @@ package org.itxtech.synapseapi;
 import cn.nukkit.Nukkit;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.plugin.PluginBase;
+import cn.nukkit.utils.Utils;
 import com.google.gson.Gson;
 import org.itxtech.synapseapi.network.SynLibInterface;
 import org.itxtech.synapseapi.network.SynapseInterface;
@@ -174,20 +175,20 @@ public class SynapseAPI extends PluginBase {
         }
     }
 
-    public SynapseDataPacket getPacket(byte[] buffer){
+    public DataPacket getPacket(byte[] buffer){
         byte pid = buffer[0];
         byte start = 1;
         if(pid == (byte) 0xfe){
             pid = buffer[1];
             start++;
         }
+        System.out.println(Util.bytesToHexString(buffer));
         DataPacket data = this.getServer().getNetwork().getPacket(pid);
-        if(!(data instanceof SynapseDataPacket)){
+        if(data == null){
             return null;
         }
-        SynapseDataPacket dataPacket = (SynapseDataPacket) data;
         data.setBuffer(buffer, start);
-        return dataPacket;
+        return data;
     }
     
     public void removePlayer(SynapsePlayer player){
@@ -228,7 +229,6 @@ public class SynapseAPI extends PluginBase {
                 PlayerLoginPacket pk1 = (PlayerLoginPacket)pk;
                 SynapsePlayer player = new SynapsePlayer(this.synLibInterface, new Random().nextLong(), pk1.address, pk1.port);
                 player.setUniqueId(pk1.uuid);
-                this.getServer().addOnlinePlayer(player);
                 this.players.put(pk1.uuid, player);
                 player.handleLoginPacket(pk1);
                 break;
@@ -237,8 +237,10 @@ public class SynapseAPI extends PluginBase {
                 UUID uuid = pk2.uuid;
                 if(this.players.containsKey(uuid)){
                     pk = this.getPacket(pk2.mcpeBuffer);
-                    pk2.decode();
-                    this.players.get(uuid).handleDataPacket(pk);
+                    if(pk != null) {System.out.println(pk.pid());
+                        pk.decode();
+                        this.players.get(uuid).handleDataPacket(pk);
+                    }
                 }
                 break;
             case SynapseInfo.PLAYER_LOGOUT_PACKET:

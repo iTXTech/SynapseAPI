@@ -18,7 +18,6 @@ import cn.nukkit.network.protocol.*;
 import cn.nukkit.utils.TextFormat;
 import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
-import org.itxtech.synapseapi.network.protocol.spp.SynapseDataPacket;
 import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
 import org.itxtech.synapseapi.utils.ClientData;
 
@@ -47,7 +46,7 @@ public class SynapsePlayer extends Player {
         SynapsePlayerConnectEvent ev;
         this.server.getPluginManager().callEvent(ev = new SynapsePlayerConnectEvent(this, this.isFirstTimeLogin));
         if (!ev.isCancelled()) {
-            SynapseDataPacket pk = SynapseAPI.getInstance().getPacket(packet.cachedLoginPacket);
+            DataPacket pk = SynapseAPI.getInstance().getPacket(packet.cachedLoginPacket);
             pk.decode();
             this.handleDataPacket(pk);
         }
@@ -255,11 +254,6 @@ public class SynapsePlayer extends Player {
             pk.uuid = this.uuid;
             pk.clientHash = hash;
             SynapseAPI.getInstance().sendDataPacket(pk);
-
-            String ip = clients.clientList.get(hash).getIp();
-            int port = clients.clientList.get(hash).getPort();
-            this.close("", "Transferred from " + SynapseAPI.getInstance().getHash() + " to " + ip + ":" + port);
-            SynapseAPI.getInstance().removePlayer(this);
         }
     }
 
