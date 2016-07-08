@@ -244,6 +244,7 @@ public class SynapseAPI extends PluginBase {
                     Constructor constructor = clazz.getConstructor(SourceInterface.class, Long.class, String.class, int.class);
                     SynapsePlayer player = (SynapsePlayer) constructor.newInstance(this.synLibInterface, ev.getClientId(), ev.getAddress(), ev.getPort());
                     player.setUniqueId(pk1.uuid);
+                    player.isSynapseLogin = true;
                     this.players.put(pk1.uuid, player);
                     this.getServer().addPlayer(pk1.uuid.toString(), player);
                     player.handleLoginPacket(pk1);
