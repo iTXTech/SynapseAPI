@@ -182,7 +182,6 @@ public class SynapseAPI extends PluginBase {
             pid = buffer[1];
             start++;
         }
-        System.out.println(Util.bytesToHexString(buffer));
         DataPacket data = this.getServer().getNetwork().getPacket(pid);
         if(data == null){
             return null;
@@ -237,7 +236,7 @@ public class SynapseAPI extends PluginBase {
                 UUID uuid = pk2.uuid;
                 if(this.players.containsKey(uuid)){
                     pk = this.getPacket(pk2.mcpeBuffer);
-                    if(pk != null) {System.out.println(pk.pid());
+                    if(pk != null) {
                         pk.decode();
                         this.players.get(uuid).handleDataPacket(pk);
                     }

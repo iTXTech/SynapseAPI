@@ -200,7 +200,6 @@ public class ServerConnection {
                 int len = Binary.readLInt(Arrays.copyOfRange(buffer, 0, 4));
                 byte[] real = Arrays.copyOfRange(buffer, 4, buffer.length);
                 if (len != real.length) {
-                    System.out.println(arr[0]);
                     throw new Exception("Wrong packet buffer");
                 }
                 return real;
