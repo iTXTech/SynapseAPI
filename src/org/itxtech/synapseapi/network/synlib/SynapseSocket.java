@@ -1,6 +1,7 @@
 package org.itxtech.synapseapi.network.synlib;
 
 import cn.nukkit.utils.ThreadedLogger;
+import org.itxtech.synapseapi.SynapseAPI;
 
 import java.net.*;
 import java.nio.channels.*;
@@ -48,6 +49,7 @@ public class SynapseSocket {
         } catch (IOException e) {
             this.logger.critical("Synapse Client can't connect " + this.interfaz + ":" + this.port);
             this.logger.error("Socket error: " + e.getMessage());
+            SynapseAPI.enable = false;
             return false;
         }
         return true;

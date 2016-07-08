@@ -1,6 +1,9 @@
 package org.itxtech.synapseapi;
 
 import cn.nukkit.Nukkit;
+import cn.nukkit.Player;
+import cn.nukkit.Server;
+import cn.nukkit.event.player.PlayerCreationEvent;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.plugin.PluginBase;
@@ -68,6 +71,7 @@ public class SynapseAPI extends PluginBase {
         if (this.password.length() != 16) {
             this.getLogger().warning("You must use a 16 bit length key!");
             this.getLogger().warning("The SynapseAPI will not be enabled!");
+            enable = false;
             this.setEnabled(false);
             return;
         }
@@ -241,7 +245,7 @@ public class SynapseAPI extends PluginBase {
                     this.getServer().addPlayer(pk1.uuid.toString(), player);
                     player.handleLoginPacket(pk1);
                 } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-                    this.getServer().getLogger().logException(e);
+                    Server.getInstance().getLogger().logException(e);
                 }
                 break;
             case SynapseInfo.REDIRECT_PACKET:
