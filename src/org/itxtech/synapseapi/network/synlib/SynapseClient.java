@@ -95,7 +95,6 @@ public class SynapseClient extends Thread {
     }
 
     public void pushMainToThreadPacket(byte[] data) {
-        this.getLogger().debug("pushMainToThreadPacket: " + data.length);
         this.internalQueue.add(data);
     }
 
@@ -104,7 +103,6 @@ public class SynapseClient extends Thread {
     }
 
     public void pushThreadToMainPacket(byte[] data) {
-        this.getLogger().debug("pushThreadToMainPacket: " + data.length);
         this.externalQueue.add(data);
     }
 
