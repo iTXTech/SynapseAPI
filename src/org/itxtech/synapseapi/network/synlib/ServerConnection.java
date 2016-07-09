@@ -39,11 +39,15 @@ public class ServerConnection {
     public ServerConnection(SynapseClient server, SynapseSocket socket) {
         this.server = server;
         this.socket = socket;
-        this.ip = socket.getSocket().socket().getInetAddress().getHostAddress();
-        this.port = socket.getSocket().socket().getPort();
-
+        this.connected = socket.isConnected();
+        if(this.connected) {
+            this.ip = socket.getSocket().socket().getInetAddress().getHostAddress();
+            this.port = socket.getSocket().socket().getPort();
+        }else{ //default
+            this.ip = "127.0.0.1";
+            this.port = 20000;
+        }
         this.lastCheck = System.currentTimeMillis();
-        this.connected = true;
 
         this.magicBytes = Util.bytesToHexString(MAGIC_BYTES);
 
@@ -77,7 +81,9 @@ public class ServerConnection {
         } catch (Exception e) {
             Server.getInstance().getLogger().logException(e);
         }
-        this.socket.close();
+        if(this.connected){
+            this.socket.close();
+        }
     }
 
     private void tick() throws Exception {
@@ -158,7 +164,7 @@ public class ServerConnection {
             }
         } else {
             long time;
-            if (((time = System.currentTimeMillis()) - this.lastCheck) >= 3) {//re-connect
+            if (((time = System.currentTimeMillis()) - this.lastCheck) >= 3000) {//re-connect
                 this.server.getLogger().notice("Trying to re-connect to Synapse Server");
                 if (this.socket.connect()) {
                     this.connected = true;

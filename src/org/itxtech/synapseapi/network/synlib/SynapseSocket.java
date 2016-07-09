@@ -17,6 +17,7 @@ public class SynapseSocket {
     private Selector selector = null;
     private ThreadedLogger logger;
     private String interfaz;
+    private boolean connected = false;
     private int port;
 
     public SynapseSocket(ThreadedLogger logger, int port) {
@@ -46,13 +47,19 @@ public class SynapseSocket {
             this.socket.configureBlocking(false);
             this.socket.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT);
             this.logger.notice("SynapseAPI has connected to " + this.interfaz + ":" + this.port);
+            this.connected = true;
         } catch (IOException e) {
             this.logger.critical("Synapse Client can't connect " + this.interfaz + ":" + this.port);
             this.logger.error("Socket error: " + e.getMessage());
+            this.connected = false;
             SynapseAPI.enable = false;
             return false;
         }
         return true;
+    }
+
+    public boolean isConnected(){
+        return this.connected;
     }
 
     public Selector getSelector(){
@@ -69,7 +76,9 @@ public class SynapseSocket {
 
     public void close() {
         try {
-            this.socket.close();
+            if(this.connected){
+                this.socket.close();
+            }
         } catch (IOException e) {
             this.logger.critical("Synapse Client can't close!");
         }

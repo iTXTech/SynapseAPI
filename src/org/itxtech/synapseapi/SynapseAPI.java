@@ -107,6 +107,7 @@ public class SynapseAPI extends PluginBase {
             this.sendDataPacket(pk);
             this.getLogger().debug("Synapse client has disconnected from Synapse server");
         }
+        this.synapseInterface.shutdown();
     }
 
     public String getServerDescription() {
@@ -138,7 +139,7 @@ public class SynapseAPI extends PluginBase {
     }
 
     public void connect(){
-        this.getLogger().notice("Start to connect Synapse Server!   Address: " + this.getHash());
+        this.getLogger().notice("Connecting " + this.getHash());
         this.verified = false;
         ConnectPacket pk = new ConnectPacket();
         pk.encodedPassword = Util.base64Encode(AES.Encrypt(this.password, this.password));
