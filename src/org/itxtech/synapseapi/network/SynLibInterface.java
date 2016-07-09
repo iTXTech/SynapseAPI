@@ -41,12 +41,14 @@ public class SynLibInterface implements SourceInterface {
 
     @Override
     public Integer putPacket(Player player, DataPacket packet, boolean needACK, boolean immediate) {
-        packet.encode();
-        RedirectPacket pk = new RedirectPacket();
-        pk.uuid = player.getUniqueId();
-        pk.direct = immediate;
-        pk.mcpeBuffer = packet.getBuffer();
-        this.synapseInterface.putPacket(pk);
+        if(!player.closed) {
+            packet.encode();
+            RedirectPacket pk = new RedirectPacket();
+            pk.uuid = player.getUniqueId();
+            pk.direct = immediate;
+            pk.mcpeBuffer = packet.getBuffer();
+            this.synapseInterface.putPacket(pk);
+        }
         return 0;  //这个返回值在nk中并没有被用到
     }
 

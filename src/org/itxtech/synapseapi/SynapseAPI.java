@@ -216,7 +216,7 @@ public class SynapseAPI extends PluginBase {
     }
     
     public void handleDataPacket(DataPacket pk){
-        this.getLogger().debug("Received packet " + pk.pid() + " from " + this.serverIp + ":" + this.port);
+        //this.getLogger().debug("Received packet " + pk.pid() + " from " + this.serverIp + ":" + this.port);
         switch(pk.pid()){
             case SynapseInfo.DISCONNECT_PACKET:
                 DisconnectPacket disconnectPacket = (DisconnectPacket) pk;
@@ -281,7 +281,7 @@ public class SynapseAPI extends PluginBase {
                 PlayerLogoutPacket playerLogoutPacket = (PlayerLogoutPacket) pk;
                 UUID uuid1;
                 if(this.players.containsKey(uuid1 = playerLogoutPacket.uuid)){
-                    this.players.get(uuid1).close("", playerLogoutPacket.reason);
+                    this.players.get(uuid1).close("", playerLogoutPacket.reason, false);
                     this.removePlayer(uuid1);
                 }
                 break;
