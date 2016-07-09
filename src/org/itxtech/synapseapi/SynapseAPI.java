@@ -217,45 +217,58 @@ public class SynapseAPI extends PluginBase {
     public void handleDataPacket(DataPacket pk){
         this.getLogger().debug("Received packet " + pk.pid() + " from " + this.serverIp + ":" + this.port);
         switch(pk.pid()){
+            case SynapseInfo.DISCONNECT_PACKET:
+                DisconnectPacket disconnectPacket = (DisconnectPacket) pk;
+                this.verified = false;
+                switch(disconnectPacket.type){
+                    case DisconnectPacket.TYPE_GENERIC:
+                        this.getLogger().notice("Synapse Client has disconnected due to " + disconnectPacket.message);
+                        this.synapseInterface.reconnect();
+                        break;
+                    case DisconnectPacket.TYPE_WRONG_PROTOCOL:
+                        this.getLogger().error(disconnectPacket.message);
+                        break;
+                }
+                break;
             case SynapseInfo.INFORMATION_PACKET:
-                InformationPacket pk0 = (InformationPacket)pk;
-                switch(pk0.type){
+                InformationPacket informationPacket = (InformationPacket)pk;
+                switch(informationPacket.type){
                     case InformationPacket.TYPE_LOGIN:
-                        if (pk0.message.equals(InformationPacket.INFO_LOGIN_SUCCESS)){
+                        if (informationPacket.message.equals(InformationPacket.INFO_LOGIN_SUCCESS)){
                             this.getLogger().notice("Login success to " + this.serverIp + ":" + this.port);
                             this.verified = true;
-                        } else if(pk0.message.equals(InformationPacket.INFO_LOGIN_FAILED)){
+                        } else if(informationPacket.message.equals(InformationPacket.INFO_LOGIN_FAILED)){
                         this.getLogger().notice("Login failed to " + this.serverIp + ":" + this.port);
                     }
                     break;
                     case InformationPacket.TYPE_CLIENT_DATA:
-                        this.clientData = new Gson().fromJson(pk0.message, ClientData.class);
+                        this.clientData = new Gson().fromJson(informationPacket.message, ClientData.class);
                         this.lastRecvInfo = System.currentTimeMillis();
                         this.getLogger().notice("Received ClientData from " + this.serverIp + ":" + this.port);
                         break;
                 }
                 break;
             case SynapseInfo.PLAYER_LOGIN_PACKET:
-                PlayerLoginPacket pk1 = (PlayerLoginPacket)pk;
-                SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer.class, SynapsePlayer.class, new Random().nextLong(), pk1.address, pk1.port);
+                PlayerLoginPacket playerLoginPacket = (PlayerLoginPacket)pk;
+                SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer.class, SynapsePlayer.class, new Random().nextLong(), playerLoginPacket.address, playerLoginPacket.port);
                 this.getServer().getPluginManager().callEvent(ev);
                 Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
                 try {
                     Constructor constructor = clazz.getConstructor(SourceInterface.class, Long.class, String.class, int.class);
                     SynapsePlayer player = (SynapsePlayer) constructor.newInstance(this.synLibInterface, ev.getClientId(), ev.getAddress(), ev.getPort());
-                    player.setUniqueId(pk1.uuid);
-                    this.players.put(pk1.uuid, player);
-                    this.getServer().addPlayer(pk1.uuid.toString(), player);
-                    player.handleLoginPacket(pk1);
+                    player.setUniqueId(playerLoginPacket.uuid);
+                    this.players.put(playerLoginPacket.uuid, player);
+                    this.getServer().addPlayer(playerLoginPacket.uuid.toString(), player);
+                    player.handleLoginPacket(playerLoginPacket);
                 } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
                     Server.getInstance().getLogger().logException(e);
                 }
                 break;
             case SynapseInfo.REDIRECT_PACKET:
-                RedirectPacket pk2 = (RedirectPacket)pk;
-                UUID uuid = pk2.uuid;
+                RedirectPacket redirectPacket = (RedirectPacket)pk;
+                UUID uuid = redirectPacket.uuid;
                 if(this.players.containsKey(uuid)){
-                    pk = this.getPacket(pk2.mcpeBuffer);
+                    pk = this.getPacket(redirectPacket.mcpeBuffer);
                     if(pk != null) {
                         pk.decode();
                         this.players.get(uuid).handleDataPacket(pk);
@@ -263,10 +276,10 @@ public class SynapseAPI extends PluginBase {
                 }
                 break;
             case SynapseInfo.PLAYER_LOGOUT_PACKET:
-                PlayerLogoutPacket pk3 = (PlayerLogoutPacket) pk;
+                PlayerLogoutPacket playerLogoutPacket = (PlayerLogoutPacket) pk;
                 UUID uuid1;
-                if(this.players.containsKey(uuid1 = pk3.uuid)){
-                    this.players.get(uuid1).close("", pk3.reason);
+                if(this.players.containsKey(uuid1 = playerLogoutPacket.uuid)){
+                    this.players.get(uuid1).close("", playerLogoutPacket.reason);
                     this.removePlayer(uuid1);
                 }
                 break;
