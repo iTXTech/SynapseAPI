@@ -155,7 +155,13 @@ public class SynapseAPI extends PluginBase {
         public void run() {
             long startTime = System.currentTimeMillis();
             while (isEnabled()) {
-                tick();
+                try {
+                    tick();
+                } catch (Exception e) {
+                    getLogger().alert("Catch the exception in Synapse ticking: " + e.getMessage());
+                    getServer().getLogger().logException(e);
+                }
+
                 long duration = System.currentTimeMillis() - startTime;
                 if (duration < 50) {
                     try{
