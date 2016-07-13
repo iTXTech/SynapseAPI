@@ -107,7 +107,7 @@ public class SynapseAPI extends PluginBase {
             this.sendDataPacket(pk);
             this.getLogger().debug("Synapse client has disconnected from Synapse server");
         }
-        this.synapseInterface.shutdown();
+        if (this.synapseInterface != null) this.synapseInterface.shutdown();
     }
 
     public String getServerDescription() {
