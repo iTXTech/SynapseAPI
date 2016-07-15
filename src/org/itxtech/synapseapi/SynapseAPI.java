@@ -1,23 +1,18 @@
 package org.itxtech.synapseapi;
 
 import cn.nukkit.Nukkit;
-import cn.nukkit.Player;
 import cn.nukkit.Server;
-import cn.nukkit.event.player.PlayerCreationEvent;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.plugin.PluginBase;
-import cn.nukkit.utils.Utils;
 import com.google.gson.Gson;
 import org.itxtech.synapseapi.event.player.SynapsePlayerCreationEvent;
 import org.itxtech.synapseapi.network.SynLibInterface;
 import org.itxtech.synapseapi.network.SynapseInterface;
 import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 import org.itxtech.synapseapi.network.protocol.spp.*;
-import org.itxtech.synapseapi.utils.AES;
 import org.itxtech.synapseapi.utils.ClientData;
-import org.itxtech.synapseapi.utils.Util;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -142,7 +137,7 @@ public class SynapseAPI extends PluginBase {
         this.getLogger().notice("Connecting " + this.getHash());
         this.verified = false;
         ConnectPacket pk = new ConnectPacket();
-        pk.encodedPassword = Util.base64Encode(AES.Encrypt(this.password, this.password));
+        pk.password = this.password;
         pk.isMainServer = this.isMainServer();
         pk.description = this.serverDescription;
         pk.maxPlayers = this.getServer().getMaxPlayers();
