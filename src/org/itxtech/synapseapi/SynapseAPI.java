@@ -3,6 +3,7 @@ package org.itxtech.synapseapi;
 import cn.nukkit.Nukkit;
 import cn.nukkit.Server;
 import cn.nukkit.network.SourceInterface;
+import cn.nukkit.network.RakNetInterface;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.plugin.PluginBase;
@@ -74,6 +75,14 @@ public class SynapseAPI extends PluginBase {
             return;
         }
         this.serverDescription = this.getConfig().getString("description");
+        for(SourceInterface interfaz : this.getServer().getNetwork().getInterfaces()){
+            if(interfaz instanceof RakNetInterface){
+                if(this.getConfig().getBoolean("disable-rak")){
+                    interfaz.shutdown();
+                    break;
+                }
+            }
+        }
         this.synapseInterface = new SynapseInterface(this, this.serverIp, this.port);
         this.synLibInterface = new SynLibInterface(this, this.synapseInterface);
         this.lastUpdate = System.currentTimeMillis();
