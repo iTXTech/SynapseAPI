@@ -110,6 +110,11 @@ public class SynapseAPI extends PluginBase {
             pk.message = "Server closed";
             this.sendDataPacket(pk);
             this.getLogger().debug("Synapse client has disconnected from Synapse server");
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                //ignore
+            }
         }
         if (this.synapseInterface != null) this.synapseInterface.shutdown();
     }
@@ -255,7 +260,7 @@ public class SynapseAPI extends PluginBase {
                     case InformationPacket.TYPE_CLIENT_DATA:
                         this.clientData = new Gson().fromJson(informationPacket.message, ClientData.class);
                         this.lastRecvInfo = System.currentTimeMillis();
-                        this.getLogger().notice("Received ClientData from " + this.serverIp + ":" + this.port);
+                        this.getLogger().debug("Received ClientData from " + this.serverIp + ":" + this.port);
                         break;
                 }
                 break;
