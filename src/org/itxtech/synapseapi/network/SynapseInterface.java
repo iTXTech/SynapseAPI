@@ -4,9 +4,7 @@ import org.itxtech.synapseapi.SynapseAPI;
 import org.itxtech.synapseapi.network.protocol.spp.*;
 import org.itxtech.synapseapi.network.synlib.SynapseClient;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
