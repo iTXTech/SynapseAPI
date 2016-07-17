@@ -96,6 +96,24 @@ public class SynapseAPI extends PluginBase {
         this.shutdown();
     }
 
+    public Map<String, String> getClientDataByDescription(String des){
+        for(Map<String, String> cdata : this.getClientData().values()){
+            if(cdata.get("description").equals(des)){
+                return cdata;
+            }
+        }
+        return null;
+    }
+
+    public String getClientHashByDescription(String des){
+        for(Map.Entry<String, Map<String, String>> cdata : this.clientData.entrySet()){
+            if(cdata.getValue().get("description").equals(des)){
+                return cdata.getKey();
+            }
+        }
+        return null;
+    }
+
     public Map<String, Map<String, String>> getClientData() {
         return clientData;
     }
