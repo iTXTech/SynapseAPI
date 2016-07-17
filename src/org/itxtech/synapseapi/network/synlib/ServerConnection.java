@@ -216,7 +216,7 @@ public class ServerConnection {
 
     public void writePacket(byte[] data) {
         byte[] buffer = Util.concatByte(Binary.writeLInt(data.length), data, ServerConnection.MAGIC_BYTES);
-        this.sendBuffer = Binary.appendBytes(buffer, this.sendBuffer);
+        this.sendBuffer = Binary.appendBytes(this.sendBuffer, buffer);
     }
 
 }

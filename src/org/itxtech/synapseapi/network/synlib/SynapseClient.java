@@ -75,8 +75,8 @@ public class SynapseClient extends Thread {
     }
 
     public void shutdown() {
-        this.shutdown = true;
-    }
+    this.shutdown = true;
+}
 
     public int getPort() {
         return port;
@@ -95,7 +95,7 @@ public class SynapseClient extends Thread {
     }
 
     public void pushMainToThreadPacket(byte[] data) {
-        this.internalQueue.add(data);
+        this.internalQueue.offer(data);
     }
 
     public byte[] readMainToThreadPacket() {
@@ -103,7 +103,7 @@ public class SynapseClient extends Thread {
     }
 
     public void pushThreadToMainPacket(byte[] data) {
-        this.externalQueue.add(data);
+        this.externalQueue.offer(data);
     }
 
     public byte[] readThreadToMainPacket() {
