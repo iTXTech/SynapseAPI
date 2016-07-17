@@ -12,16 +12,9 @@ import org.itxtech.synapseapi.network.protocol.spp.RedirectPacket;
 public class SynLibInterface implements SourceInterface {
 
     private SynapseInterface synapseInterface;
-    private SynapseAPI synapse;
 
-    public SynLibInterface(SynapseAPI synapse, SynapseInterface synapseInterface) {
-        this.synapse = synapse;
+    public SynLibInterface(SynapseInterface synapseInterface) {
         this.synapseInterface = synapseInterface;
-    }
-
-    @Override
-    public int getNetworkLatency(Player player) {
-        return 0;
     }
 
     @Override

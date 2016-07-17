@@ -84,7 +84,7 @@ public class SynapseAPI extends PluginBase {
             }
         }
         this.synapseInterface = new SynapseInterface(this, this.serverIp, this.port);
-        this.synLibInterface = new SynLibInterface(this, this.synapseInterface);
+        this.synLibInterface = new SynLibInterface(this.synapseInterface);
         this.lastUpdate = System.currentTimeMillis();
         this.lastRecvInfo = System.currentTimeMillis();
         this.connect();
