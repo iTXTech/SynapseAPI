@@ -7,3 +7,4 @@ isMainServer: true
 password: must16keyslength
 description: Synapse Nukkit Server
 disable-rak: false
+autoConnect: true

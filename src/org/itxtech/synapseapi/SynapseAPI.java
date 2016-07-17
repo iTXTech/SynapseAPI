@@ -47,6 +47,7 @@ public class SynapseAPI extends PluginBase {
     private String serverDescription;
 
     public static boolean enable = true;
+    private boolean autoConnect = true;
 
     @Override
     public void onLoad() {
@@ -83,11 +84,12 @@ public class SynapseAPI extends PluginBase {
                 }
             }
         }
+        this.autoConnect = this.getConfig().getBoolean("autoConnect", true);
         this.synapseInterface = new SynapseInterface(this, this.serverIp, this.port);
         this.synLibInterface = new SynLibInterface(this, this.synapseInterface);
         this.lastUpdate = System.currentTimeMillis();
         this.lastRecvInfo = System.currentTimeMillis();
-        this.connect();
+        if (this.autoConnect) this.connect();
     }
 
     @Override
@@ -158,6 +160,10 @@ public class SynapseAPI extends PluginBase {
         pk.protocol = SynapseInfo.CURRENT_PROTOCOL;
         this.sendDataPacket(pk);
         new Thread(new Ticker()).start();
+    }
+
+    public boolean isAutoConnect() {
+        return autoConnect;
     }
 
     public class Ticker implements Runnable {
