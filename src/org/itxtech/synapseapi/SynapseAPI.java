@@ -133,6 +133,22 @@ public class SynapseAPI extends PluginBase {
         this.synapseInterface.putPacket(pk);
     }
 
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public void setServerIp(String serverIp) {
+        this.serverIp = serverIp;
+    }
+
+    public void setMainServer(boolean mainServer) {
+        isMainServer = mainServer;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     public String getServerIp() {
         return serverIp;
     }
@@ -203,7 +219,7 @@ public class SynapseAPI extends PluginBase {
         }
 
         time = System.currentTimeMillis();
-        if(((time - this.lastUpdate) >= 30000) && this.synapseInterface.isConnected()){//30 seconds timeout
+        if(((time - this.lastUpdate) >= 30000) && this.synapseInterface.isConnected()){  //30 seconds timeout
             this.synapseInterface.reconnect();
         }
     }
