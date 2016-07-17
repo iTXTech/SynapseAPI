@@ -15,17 +15,12 @@ import java.util.Map;
 public class SynapseInterface {
 
     private SynapseAPI synapse;
-    private String ip;
-    private int port;
     private SynapseClient client;
     private Map<Byte, SynapseDataPacket> packetPool = new HashMap<>();
     private boolean connected = true;
-    private boolean needReconnect = false;
 
     public SynapseInterface(SynapseAPI server, String ip, int port){
         this.synapse = server;
-        this.ip = ip;
-        this.port = port;
         this.registerPackets();
         this.client = new SynapseClient(server.getServer().getLogger(), port, ip);
     }
@@ -70,7 +65,6 @@ public class SynapseInterface {
 
     public SynapseDataPacket getPacket(byte[] buffer) {
         byte pid = buffer[0];
-        /** @var DataPacket class */
         SynapseDataPacket clazz = this.packetPool.get(pid);
         if (clazz != null) {
             SynapseDataPacket pk = clazz.clone();

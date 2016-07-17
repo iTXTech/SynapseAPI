@@ -13,7 +13,7 @@ import java.util.Arrays;
 /**
  * Created by boybook on 16/6/24.
  */
-public class ServerConnection {
+public class Session {
     public static final byte[] MAGIC_BYTES = new byte[]{
             (byte) 0x35, (byte) 0xac, (byte) 0x66, (byte) 0xbf
     };
@@ -28,7 +28,7 @@ public class ServerConnection {
     private boolean connected;
     private String magicBytes;
 
-    public ServerConnection(SynapseClient server, SynapseSocket socket) {
+    public Session(SynapseClient server, SynapseSocket socket) {
         this.server = server;
         this.socket = socket;
         this.connected = socket.isConnected();
@@ -207,7 +207,7 @@ public class ServerConnection {
     }
 
     public void writePacket(byte[] data) {
-        byte[] buffer = Binary.appendBytes(Binary.writeLInt(data.length), data, ServerConnection.MAGIC_BYTES);
+        byte[] buffer = Binary.appendBytes(Binary.writeLInt(data.length), data, Session.MAGIC_BYTES);
         this.sendBuffer = Binary.appendBytes(this.sendBuffer, buffer);
     }
 
