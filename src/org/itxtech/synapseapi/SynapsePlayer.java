@@ -20,7 +20,6 @@ import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
-import org.itxtech.synapseapi.utils.ClientData;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -283,8 +282,8 @@ public class SynapsePlayer extends Player {
     }
 
     public void transfer(String hash){
-        ClientData clients = SynapseAPI.getInstance().getClientData();
-        if(clients.clientList.containsKey(hash)){
+        Map<String, Map<String, String>> clients = SynapseAPI.getInstance().getClientData();
+        if(clients.containsKey(hash)){
             for (Entity entity: this.getLevel().getEntities()){
                 if(entity.getViewers().containsKey(this.getLoaderId())){
                     entity.despawnFrom(this);
