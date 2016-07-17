@@ -2,7 +2,6 @@ package org.itxtech.synapseapi.network.synlib;
 
 import cn.nukkit.Server;
 import cn.nukkit.utils.Binary;
-import org.itxtech.synapseapi.utils.Util;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -10,7 +9,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
-import java.util.StringTokenizer;
 
 /**
  * Created by boybook on 16/6/24.
@@ -22,15 +20,9 @@ public class ServerConnection {
 
     private byte[] receiveBuffer = new byte[0];
     private byte[] sendBuffer = new byte[0];
-    /**
-     * @var resource
-     */
     private SynapseSocket socket;
     private String ip;
     private int port;
-    /**
-     * @var SynapseClient
-     */
     private SynapseClient server;
     private long lastCheck;
     private boolean connected;
@@ -49,7 +41,7 @@ public class ServerConnection {
         }
         this.lastCheck = System.currentTimeMillis();
 
-        this.magicBytes = Util.bytesToHexString(MAGIC_BYTES);
+        this.magicBytes = Binary.bytesToHexString(MAGIC_BYTES);
 
         this.run();
     }
@@ -179,7 +171,7 @@ public class ServerConnection {
     }
 
     public byte[] readPacket() throws Exception {
-        String str = Util.bytesToHexString(this.receiveBuffer);
+        String str = Binary.bytesToHexString(this.receiveBuffer);
         if(str != null) {
             String[] arr = str.split(this.magicBytes, 2);
             if (arr.length <= 2) {
@@ -191,7 +183,7 @@ public class ServerConnection {
                         return new byte[0];
                     }
                 } else {
-                    byte[] newBuffer = Util.hexStringToBytes(arr[1]);
+                    byte[] newBuffer = Binary.hexStringToBytes(arr[1]);
                     if(newBuffer != null){
                         this.receiveBuffer = newBuffer;
                     }else{
@@ -199,7 +191,7 @@ public class ServerConnection {
                     }
                 }
                 byte[] buffer;
-                buffer = Util.hexStringToBytes(arr[0]);
+                buffer = Binary.hexStringToBytes(arr[0]);
                 if (buffer.length < 4) {
                     return new byte[0];
                 }
@@ -215,7 +207,7 @@ public class ServerConnection {
     }
 
     public void writePacket(byte[] data) {
-        byte[] buffer = Util.concatByte(Binary.writeLInt(data.length), data, ServerConnection.MAGIC_BYTES);
+        byte[] buffer = Binary.appendBytes(Binary.writeLInt(data.length), data, ServerConnection.MAGIC_BYTES);
         this.sendBuffer = Binary.appendBytes(this.sendBuffer, buffer);
     }
 
