@@ -18,7 +18,6 @@ public class SynapseClient extends Thread {
     private boolean shutdown = false;
     protected ConcurrentLinkedQueue<byte[]> externalQueue;
     protected ConcurrentLinkedQueue<byte[]> internalQueue;
-    private String mainPath;
     private boolean needAuth = false;
     private boolean connected = true;
     public boolean needReconnect = false;
@@ -37,7 +36,6 @@ public class SynapseClient extends Thread {
         this.shutdown = false;
         this.externalQueue = new ConcurrentLinkedQueue<>();
         this.internalQueue = new ConcurrentLinkedQueue<>();
-        this.mainPath = Nukkit.PATH;
 
         this.start();
     }
@@ -114,7 +112,7 @@ public class SynapseClient extends Thread {
         Runtime.getRuntime().addShutdownHook(new ShutdownHandler());
         try {
             SynapseSocket socket = new SynapseSocket(this.getLogger(), this.port, this.interfaz);
-            new ServerConnection(this, socket);
+            new Session(this, socket);
         } catch (Exception e) {
             e.printStackTrace();
         }
