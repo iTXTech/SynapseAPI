@@ -13,7 +13,6 @@ import org.itxtech.synapseapi.network.SynLibInterface;
 import org.itxtech.synapseapi.network.SynapseInterface;
 import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 import org.itxtech.synapseapi.network.protocol.spp.*;
-import org.itxtech.synapseapi.utils.ClientData;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -43,7 +42,7 @@ public class SynapseAPI extends PluginBase {
     private long lastRecvInfo;
     private Map<UUID, SynapsePlayer> players = new HashMap<>();
     private SynLibInterface synLibInterface;
-    private ClientData clientData;
+    private Map<String, Map<String, String>> clientData = new HashMap<String, HashMap<String, String>>();
     private String serverDescription;
 
     public static boolean enable = true;
@@ -97,7 +96,7 @@ public class SynapseAPI extends PluginBase {
         this.shutdown();
     }
 
-    public ClientData getClientData() {
+    public Map<String, Map<String, String>> getClientData() {
         return clientData;
     }
 
@@ -264,7 +263,7 @@ public class SynapseAPI extends PluginBase {
                     }
                     break;
                     case InformationPacket.TYPE_CLIENT_DATA:
-                        this.clientData = new Gson().fromJson(informationPacket.message, ClientData.class);
+                        this.clientData = new Gson().fromJson(informationPacket.message, this.clientData.getClass());
                         this.lastRecvInfo = System.currentTimeMillis();
                         this.getLogger().debug("Received ClientData from " + this.serverIp + ":" + this.port);
                         break;
