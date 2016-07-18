@@ -17,9 +17,6 @@ import java.util.List;
  * Created by boybook on 16/6/24.
  */
 public class Session {
-    public static final byte[] MAGIC_BYTES = new byte[]{
-            (byte) 0x35, (byte) 0xac, (byte) 0x66, (byte) 0xbf
-    };
 
     private byte[] receiveBuffer = new byte[0];
     private byte[] sendBuffer = new byte[0];
@@ -29,7 +26,6 @@ public class Session {
     private SynapseClient server;
     private long lastCheck;
     private boolean connected;
-    private String magicBytes;
 
     public Session(SynapseClient server, SynapseSocket socket) {
         this.server = server;
@@ -43,8 +39,6 @@ public class Session {
             this.port = 20000;
         }
         this.lastCheck = System.currentTimeMillis();
-
-        this.magicBytes = Binary.bytesToHexString(MAGIC_BYTES);
 
         this.run();
     }
