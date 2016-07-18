@@ -282,7 +282,7 @@ public class SynapseAPI extends PluginBase {
                     case InformationPacket.TYPE_CLIENT_DATA:
                         this.clientData = new Gson().fromJson(informationPacket.message, ClientData.class);
                         this.lastRecvInfo = System.currentTimeMillis();
-                        this.getLogger().debug("Received ClientData from " + this.serverIp + ":" + this.port);
+                        //this.getLogger().debug("Received ClientData from " + this.serverIp + ":" + this.port);
                         break;
                 }
                 break;

@@ -21,6 +21,7 @@ import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
 import org.itxtech.synapseapi.utils.ClientData;
+import org.itxtech.synapseapi.utils.LevelUtil;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -202,6 +203,23 @@ public class SynapsePlayer extends Player {
                 startGamePacket.b3 = false;
                 startGamePacket.unknownstr = "";
                 this.dataPacket(startGamePacket);
+            } else {
+                ChangeDimensionPacket changeDimensionPacket = new ChangeDimensionPacket();
+                changeDimensionPacket.dimension = 1;
+                changeDimensionPacket.x = 6;
+                changeDimensionPacket.y = 0;
+                changeDimensionPacket.z = 6;
+                this.dataPacket(changeDimensionPacket);
+                FullChunkDataPacket fullChunkDataPacket = LevelUtil.getEmptyChunkFullPacket(0, 0);
+                this.dataPacket(fullChunkDataPacket);
+                RespawnPacket respawnPacket = new RespawnPacket();
+                respawnPacket.x = 6;
+                respawnPacket.y = 0;
+                respawnPacket.z = 6;
+                this.dataPacket(respawnPacket);
+                PlayStatusPacket statusPacket1 = new PlayStatusPacket();
+                statusPacket1.status = PlayStatusPacket.PLAYER_SPAWN;
+                this.dataPacket(statusPacket1);
             }
 
             SetTimePacket setTimePacket = new SetTimePacket();
