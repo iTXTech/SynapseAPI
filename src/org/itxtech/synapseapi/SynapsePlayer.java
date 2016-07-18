@@ -204,22 +204,41 @@ public class SynapsePlayer extends Player {
                 startGamePacket.unknownstr = "";
                 this.dataPacket(startGamePacket);
             } else {
+                /*
                 ChangeDimensionPacket changeDimensionPacket = new ChangeDimensionPacket();
                 changeDimensionPacket.dimension = 1;
-                changeDimensionPacket.x = 6;
+                changeDimensionPacket.x = 0;
                 changeDimensionPacket.y = 0;
-                changeDimensionPacket.z = 6;
+                changeDimensionPacket.z = 0;
                 this.dataPacket(changeDimensionPacket);
                 FullChunkDataPacket fullChunkDataPacket = LevelUtil.getEmptyChunkFullPacket(0, 0);
                 this.dataPacket(fullChunkDataPacket);
+                FullChunkDataPacket fullChunkDataPacket1 = LevelUtil.getEmptyChunkFullPacket(0, -1);
+                this.dataPacket(fullChunkDataPacket1);
+                FullChunkDataPacket fullChunkDataPacket2 = LevelUtil.getEmptyChunkFullPacket(-1, 0);
+                this.dataPacket(fullChunkDataPacket2);
+                FullChunkDataPacket fullChunkDataPacket3 = LevelUtil.getEmptyChunkFullPacket(-1, -1);
+                this.dataPacket(fullChunkDataPacket3);
                 RespawnPacket respawnPacket = new RespawnPacket();
-                respawnPacket.x = 6;
+                respawnPacket.x = 0;
                 respawnPacket.y = 0;
-                respawnPacket.z = 6;
-                this.dataPacket(respawnPacket);
+                respawnPacket.z = 0;
+                //this.dataPacket(respawnPacket);
                 PlayStatusPacket statusPacket1 = new PlayStatusPacket();
                 statusPacket1.status = PlayStatusPacket.PLAYER_SPAWN;
                 this.dataPacket(statusPacket1);
+                ChangeDimensionPacket changeDimensionPacket1 = new ChangeDimensionPacket();
+                changeDimensionPacket1.dimension = 0;
+                changeDimensionPacket1.x = (float)this.getX();
+                changeDimensionPacket1.y = (float)this.getY();
+                changeDimensionPacket1.z = (float)this.getZ();
+                this.dataPacket(changeDimensionPacket1);
+                RespawnPacket respawnPacket1 = new RespawnPacket();
+                respawnPacket1.x = (float)this.getX();
+                respawnPacket1.y = (float)this.getY();
+                respawnPacket1.z = (float)this.getZ();
+                this.dataPacket(respawnPacket1);
+                */
             }
 
             SetTimePacket setTimePacket = new SetTimePacket();

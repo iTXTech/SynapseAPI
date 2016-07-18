@@ -8,7 +8,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by boybook on 16/6/24.
@@ -80,18 +83,18 @@ public class Session {
 
     private void tick() throws Exception {
         if (this.update()) {
-            while (this.receivePacket()) ;
+            this.receivePacket();
             while (this.sendPacket()) ;
         }
     }
 
-    private boolean receivePacket() throws Exception {
-        byte[] packet = this.readPacket();
-        if (packet != null && packet.length > 0) {
-            this.server.pushThreadToMainPacket(packet);
-            return true;
+    private void receivePacket() throws Exception {
+        List<byte[]> packets = this.readPacket();
+        for (byte[] packet: packets) {
+            if (packet != null && packet.length > 0) {
+                this.server.pushThreadToMainPacket(packet);
+            }
         }
-        return false;
     }
 
     private boolean sendPacket() throws Exception {
@@ -170,44 +173,27 @@ public class Session {
         }
     }
 
-    public byte[] readPacket() throws Exception {
-        String str = Binary.bytesToHexString(this.receiveBuffer);
-        if(str != null) {
-            String[] arr = str.split(this.magicBytes, 2);
-            if (arr.length <= 2) {
-                if (arr.length == 1) {
-                    if (arr[0].endsWith(this.magicBytes)) {
-                        this.receiveBuffer = new byte[0];
-                        arr[0] = arr[0].substring(arr[0].length() - this.magicBytes.length(), arr[0].length());
-                    }else{
-                        return new byte[0];
-                    }
-                } else {
-                    byte[] newBuffer = Binary.hexStringToBytes(arr[1]);
-                    if(newBuffer != null){
-                        this.receiveBuffer = newBuffer;
-                    }else{
-                        this.receiveBuffer = new byte[0];
-                    }
-                }
-                byte[] buffer;
-                buffer = Binary.hexStringToBytes(arr[0]);
-                if (buffer.length < 4) {
-                    return new byte[0];
-                }
-                int len = Binary.readLInt(Arrays.copyOfRange(buffer, 0, 4));
-                byte[] real = Arrays.copyOfRange(buffer, 4, buffer.length);
-                if (len != real.length) {
-                    throw new Exception("Wrong packet buffer");
-                }
-                return real;
+    public List<byte[]> readPacket() throws Exception {
+        List<byte[]> packets = new ArrayList<>();
+        if(this.receiveBuffer != null) {
+            int len = this.receiveBuffer.length;
+            int offset = 0;
+            while (offset < len) {
+                int pkLen = Binary.readInt(Binary.subBytes(this.receiveBuffer, offset, 4));
+                offset += 4;
+
+                byte[] buf = Binary.subBytes(this.receiveBuffer, offset, pkLen);
+                offset += pkLen;
+
+                packets.add(buf);
             }
         }
-        return new byte[0];
+        this.receiveBuffer = new byte[0];
+        return packets;
     }
 
     public void writePacket(byte[] data) {
-        byte[] buffer = Binary.appendBytes(Binary.writeLInt(data.length), data, Session.MAGIC_BYTES);
+        byte[] buffer = Binary.appendBytes(Binary.writeInt(data.length), data);
         this.sendBuffer = Binary.appendBytes(this.sendBuffer, buffer);
     }
 
