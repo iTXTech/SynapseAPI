@@ -19,12 +19,6 @@ public class SynLibInterface implements SourceInterface {
 
     @Override
     public void emergencyShutdown() {
-
-    }
-
-    @Override
-    public int getNetworkLatency(Player player) {
-        return 0;
     }
 
     @Override
