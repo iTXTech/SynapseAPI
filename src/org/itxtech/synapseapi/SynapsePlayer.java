@@ -32,7 +32,7 @@ import java.util.UUID;
 public class SynapsePlayer extends Player {
 
     private boolean isFirstTimeLogin = false;
-    private long lastPacketTime;
+    private long lastPacketTime = System.currentTimeMillis();
     public boolean isSynapseLogin = false;
 
     private long needSlowLogin = 0;
