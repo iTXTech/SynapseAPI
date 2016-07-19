@@ -135,7 +135,7 @@ public class Session {
                             sk.interestOps(SelectionKey.OP_READ);
                             if(n > 0) {
                                 byte[] buffer = Arrays.copyOfRange(buff.array(), 0, n);
-                                this.receiveBuffer = Binary.appendBytes(buffer, this.receiveBuffer);
+                                this.receiveBuffer = Binary.appendBytes(this.receiveBuffer, buffer);
                             }
                         }
                     }
@@ -173,6 +173,7 @@ public class Session {
             int len = this.receiveBuffer.length;
             int offset = 0;
             while (offset < len) {
+                if (offset > len - 4) break;
                 int pkLen = Binary.readInt(Binary.subBytes(this.receiveBuffer, offset, 4));
                 offset += 4;
 

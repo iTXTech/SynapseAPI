@@ -109,6 +109,7 @@ public class SynapseClient extends Thread {
     }
 
     public void run() {
+        this.setName("SynLib Thread #" + Thread.currentThread().getId());
         Runtime.getRuntime().addShutdownHook(new ShutdownHandler());
         try {
             SynapseSocket socket = new SynapseSocket(this.getLogger(), this.port, this.interfaz);
