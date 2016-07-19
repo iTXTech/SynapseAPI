@@ -175,7 +175,9 @@ public class SynapseAPI extends PluginBase {
         pk.maxPlayers = this.getServer().getMaxPlayers();
         pk.protocol = SynapseInfo.CURRENT_PROTOCOL;
         this.sendDataPacket(pk);
-        new Thread(new Ticker()).start();
+        Thread ticker = new Thread(new Ticker());
+        ticker.setName("SynapseAPI Ticker");
+        ticker.start();
     }
 
     public boolean isAutoConnect() {
@@ -194,9 +196,9 @@ public class SynapseAPI extends PluginBase {
                 }
 
                 long duration = System.currentTimeMillis() - startTime;
-                if (duration < 50) {
+                if (duration < 10) {
                     try{
-                        Thread.sleep(50 - duration);
+                        Thread.sleep(10 - duration);
                     } catch (InterruptedException e) {
                         //ignore
                     }

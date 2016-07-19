@@ -1,6 +1,5 @@
 package org.itxtech.synapseapi.network.synlib;
 
-import cn.nukkit.Nukkit;
 import cn.nukkit.utils.ThreadedLogger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -98,6 +97,10 @@ public class SynapseClient extends Thread {
 
     public byte[] readMainToThreadPacket() {
         return this.internalQueue.poll();
+    }
+
+    public int getInternalQueueSize() {
+        return this.internalQueue.size();
     }
 
     public void pushThreadToMainPacket(byte[] data) {

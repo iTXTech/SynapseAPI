@@ -1,7 +1,9 @@
 package org.itxtech.synapseapi.network.synlib;
 
 import cn.nukkit.Server;
+import cn.nukkit.math.NukkitMath;
 import cn.nukkit.utils.Binary;
+import jdk.nashorn.internal.runtime.ECMAException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -47,19 +49,24 @@ public class Session {
         this.tickProcessor();
     }
 
+    private long tickUseTime = 0;
+    private long tickUseNano = 0;
+
     private void tickProcessor() {
         while (!this.server.isShutdown()) {
             long start = System.currentTimeMillis();
+            long startNano = System.nanoTime();
             try {
                 this.tick();
             } catch (Exception e) {
-                Server.getInstance().getLogger().logException(e);
+                e.printStackTrace();
             }
-
-            long time = System.currentTimeMillis();
-            if (time - start < 1) {  //todo TPS ???
+            long time = System.currentTimeMillis() - start;
+            this.tickUseTime = time;
+            this.tickUseNano = System.nanoTime() - startNano;
+            if(time < 10){
                 try {
-                    Thread.sleep(1 - time + start);
+                    Thread.sleep(10 - time);
                 } catch (InterruptedException e) {
                     //ignore
                 }
@@ -68,7 +75,7 @@ public class Session {
         try {
             this.tick();
         } catch (Exception e) {
-            Server.getInstance().getLogger().logException(e);
+            e.printStackTrace();
         }
         if(this.connected){
             this.socket.close();
@@ -199,6 +206,16 @@ public class Session {
     public void writePacket(byte[] data) {
         byte[] buffer = Binary.appendBytes(Binary.writeInt(data.length), data);
         this.sendBuffer = Binary.appendBytes(this.sendBuffer, buffer);
+    }
+
+    public float getTicksPerSecond() {
+        long more = this.tickUseTime - 10;
+        if (more < 0) return 100;
+        return Math.round(10f / (float)this.tickUseTime) * 100;
+    }
+
+    public float getTickUsage() {
+        return (float) NukkitMath.round((float)this.tickUseNano / 10000f, 2);
     }
 
 }
