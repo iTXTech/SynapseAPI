@@ -97,6 +97,10 @@ public class SynapseAPI extends PluginBase {
     public ClientData getClientData() {
         return clientData;
     }
+    
+    public String getClientHashByDescription(String des){
+        return clientData.getHashByDescription(des);
+    }
 
     public SynapseInterface getSynapseInterface() {
         return synapseInterface;
