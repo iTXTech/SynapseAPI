@@ -21,7 +21,7 @@ import java.util.List;
 public class Session {
 
     private byte[] receiveBuffer = new byte[0];
-    private byte[] sendBuffer = new byte[0];
+    //private byte[] sendBuffer = new byte[0];
     private SynapseSocket socket;
     private String ip;
     private int port;
@@ -85,7 +85,10 @@ public class Session {
     private void tick() throws Exception {
         if (this.update()) {
             this.receivePacket();
-            while (this.sendPacket()) ;
+            int max = 5000;
+            while (max > 0 && this.sendPacket()){
+                max--;
+            }
         }
     }
 
@@ -147,10 +150,10 @@ public class Session {
                         }
                     }
                 }
-                if (this.sendBuffer.length > 0) {
+                /*if (this.sendBuffer.length > 0) {
                     this.socket.getSocket().write(ByteBuffer.wrap(this.sendBuffer));
                     this.sendBuffer = new byte[0];
-                }
+                }*/
                 return true;
             } catch (IOException e) {
                 this.server.getLogger().error("Synapse connection has disconnected unexpectedly");
@@ -204,8 +207,13 @@ public class Session {
     }
 
     public void writePacket(byte[] data) {
-        byte[] buffer = Binary.appendBytes(Binary.writeInt(data.length), data);
-        this.sendBuffer = Binary.appendBytes(this.sendBuffer, buffer);
+        /*byte[] buffer = Binary.appendBytes(Binary.writeInt(data.length), data);
+        this.sendBuffer = Binary.appendBytes(this.sendBuffer, buffer);*/
+        try {
+            this.socket.getSocket().write(ByteBuffer.wrap(Binary.appendBytes(Binary.writeInt(data.length), data)));
+        }catch (IOException e){
+            //
+        }
     }
 
     public float getTicksPerSecond() {
