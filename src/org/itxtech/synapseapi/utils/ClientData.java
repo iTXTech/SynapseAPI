@@ -16,6 +16,14 @@ public class ClientData {
         private int playerCount;
         private int maxPlayers;
         private String description;
+        
+        public Entry(String ip, int port, int playerCount, int maxPlayers, String description){
+            this.ip = ip;
+            this.port = port;
+            this.playerCount = playerCount;
+            this.maxPlayers = maxPlayers;
+            this.description = description;
+        }
 
         public String getIp() {
             return ip;
