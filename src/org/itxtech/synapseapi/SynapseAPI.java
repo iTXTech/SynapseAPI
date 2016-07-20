@@ -295,7 +295,14 @@ public class SynapseAPI extends PluginBase {
                     }
                     break;
                     case InformationPacket.TYPE_CLIENT_DATA:
-                        this.clientData = new Gson().fromJson(informationPacket.message, ClientData.class);
+                        Map<String, Map<String, String>> data = new HashMap<String, Map<String, String>>();
+                        data = new Gson().fromJson(informationPacket.message, data.getClass());
+                        ClientData clients = new ClientData();
+                        for(Map.Entry<String, Map<String, String>> entry : data.entrySet()){
+                            ClientData.Entry client = new ClientData.Entry(entry.getValue().get("ip"), entry.getValue().get("port"), entry.getValue().get("playerCount"), entry.getValue().get("maxPlayers"), entry.getValue().get("description"));
+                            clients.clientList.put(entry.getKey(), client);
+                        }
+                        this.clientData = clients;
                         this.lastRecvInfo = System.currentTimeMillis();
                         //this.getLogger().debug("Received ClientData from " + this.serverIp + ":" + this.port);
                         break;
