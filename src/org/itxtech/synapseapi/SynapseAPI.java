@@ -17,10 +17,7 @@ import org.itxtech.synapseapi.utils.ClientData;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Created by boybook on 16/6/24.
@@ -155,6 +152,22 @@ public class SynapseAPI extends PluginBase {
 
     public int getPort() {
         return port;
+    }
+
+    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet){
+        this.broadcastPacket(players, packet, false);
+    }
+
+    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet, boolean direct){
+        packet.encode();
+        BroadcastPacket broadcastPacket = new BroadcastPacket();
+        broadcastPacket.direct = direct;
+        broadcastPacket.payload = packet.getBuffer();
+        broadcastPacket.entries = new ArrayList<>();
+        for (SynapsePlayer player : players){
+            broadcastPacket.entries.add(player.getUniqueId());
+        }
+        this.sendDataPacket(broadcastPacket);
     }
 
     public boolean isMainServer() {
