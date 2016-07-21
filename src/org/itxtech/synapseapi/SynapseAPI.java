@@ -299,10 +299,10 @@ public class SynapseAPI extends PluginBase {
                     }
                     break;
                     case InformationPacket.TYPE_CLIENT_DATA:
-                        Map<String, Map<String, String>> data = new HashMap<String, Map<String, String>>();
+                        Map<String, Map<String, Map<String, String>>> data = new HashMap<String, Map<String, Map<String, String>>>();
                         data = new Gson().fromJson(informationPacket.message, data.getClass());
                         ClientData clients = new ClientData();
-                        for(Map.Entry<String, Map<String, String>> entry : data.entrySet()){
+                        for(Map.Entry<String, Map<String, String>> entry : data.get("clientList").entrySet()){
                             ClientData.Entry client = new ClientData.Entry(entry.getValue().get("ip"), entry.getValue().get("port"), entry.getValue().get("playerCount"), entry.getValue().get("maxPlayers"), entry.getValue().get("description"));
                             clients.clientList.put(entry.getKey(), client);
                         }
