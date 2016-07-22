@@ -5,10 +5,14 @@ import cn.nukkit.PlayerFood;
 import cn.nukkit.Server;
 import cn.nukkit.entity.Attribute;
 import cn.nukkit.entity.Entity;
+import cn.nukkit.event.TranslationContainer;
+import cn.nukkit.event.player.PlayerJoinEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
+import cn.nukkit.event.player.PlayerRespawnEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Position;
+import cn.nukkit.level.format.Chunk;
 import cn.nukkit.math.NukkitMath;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.DoubleTag;
@@ -18,11 +22,13 @@ import cn.nukkit.network.protocol.*;
 import cn.nukkit.utils.TextFormat;
 import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
+import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
 import org.itxtech.synapseapi.utils.ClientData;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -318,6 +324,97 @@ public class SynapsePlayer extends Player {
 
     }
 
+    @Override
+    protected void doFirstSpawn() {
+        this.spawned = true;
+
+        this.server.sendRecipeList(this);
+        this.sendSettings();
+
+        this.sendPotionEffects(this);
+        this.sendData(this);
+        this.inventory.sendContents(this);
+        this.inventory.sendArmorContents(this);
+
+        SetTimePacket setTimePacket = new SetTimePacket();
+        setTimePacket.time = this.level.getTime();
+        setTimePacket.started = !this.level.stopTime;
+        this.dataPacket(setTimePacket);
+
+        Position pos = this.level.getSafeSpawn(this);
+
+        PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(this, pos);
+
+        this.server.getPluginManager().callEvent(respawnEvent);
+
+        pos = respawnEvent.getRespawnPosition();
+
+        RespawnPacket respawnPacket = new RespawnPacket();
+        respawnPacket.x = (float) pos.x;
+        respawnPacket.y = (float) pos.y;
+        respawnPacket.z = (float) pos.z;
+        this.dataPacket(respawnPacket);
+
+        PlayStatusPacket playStatusPacket = new PlayStatusPacket();
+        playStatusPacket.status = PlayStatusPacket.PLAYER_SPAWN;
+        this.dataPacket(playStatusPacket);
+
+        PlayerJoinEvent playerJoinEvent = new PlayerJoinEvent(this,
+                new TranslationContainer(TextFormat.YELLOW + "%multiplayer.player.joined", new String[]{
+                        this.getDisplayName()
+                })
+        );
+
+        this.server.getPluginManager().callEvent(playerJoinEvent);
+
+        if (playerJoinEvent.getJoinMessage().toString().trim().length() > 0) {
+            this.server.broadcastMessage(playerJoinEvent.getJoinMessage());
+        }
+
+        this.noDamageTicks = 60;
+
+        for (String index : this.usedChunks.keySet()) {
+            Chunk.Entry chunkEntry = Level.getChunkXZ(index);
+            int chunkX = chunkEntry.chunkX;
+            int chunkZ = chunkEntry.chunkZ;
+            for (Entity entity : this.level.getChunkEntities(chunkX, chunkZ).values()) {
+                if (this != entity && !entity.closed && entity.isAlive()) {
+                    entity.spawnTo(this);
+                }
+            }
+        }
+
+        this.sendExperience(this.getExperience());
+        this.sendExperienceLevel(this.getExperienceLevel());
+
+        this.teleport(pos, null); // Prevent PlayerTeleportEvent during player spawn
+
+        if (!this.isSpectator()) {
+            this.spawnToAll();
+        }
+
+        this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getDisplayName(), this.getSkin());
+        //this.server.sendFullPlayerListData(this, false);
+        this.sendFullPlayerListData(false);
+
+        //todo Updater
+
+        if (this.getHealth() <= 0) {
+            respawnPacket = new RespawnPacket();
+            pos = this.getSpawn();
+            respawnPacket.x = (float) pos.x;
+            respawnPacket.y = (float) pos.y;
+            respawnPacket.z = (float) pos.z;
+            this.dataPacket(respawnPacket);
+        }
+
+        //Weather
+        this.getLevel().sendWeather(this);
+
+        //FoodLevel
+        this.getFoodData().sendFoodLevel();
+    }
+
     public void transfer(String hash){
         ClientData clients = SynapseAPI.getInstance().getClientData();
         if(clients.clientList.containsKey(hash)){
@@ -370,6 +467,23 @@ public class SynapsePlayer extends Player {
     public int directDataPacket(DataPacket packet, boolean needACK){
         if (!this.isSynapseLogin) return super.directDataPacket(packet, needACK);
         return this.interfaz.putPacket(this, packet, needACK, true);
+    }
+
+    public void sendFullPlayerListData(boolean self) {
+        FastPlayerListPacket pk = new FastPlayerListPacket();
+        pk.sendTo = this.getUniqueId();
+        pk.type = PlayerListPacket.TYPE_ADD;
+        List<FastPlayerListPacket.Entry> entries = new ArrayList<>();
+        for (Player p : this.getServer().getOnlinePlayers().values()) {
+            if (!self && p == this) {
+                continue;
+            }
+            entries.add(new FastPlayerListPacket.Entry(p.getUniqueId(), p.getId(), p.getDisplayName()));
+        }
+
+        pk.entries = entries.stream().toArray(FastPlayerListPacket.Entry[]::new);
+
+        SynapseAPI.getInstance().sendDataPacket(pk);
     }
 
 }

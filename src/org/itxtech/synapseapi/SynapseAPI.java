@@ -188,15 +188,26 @@ public class SynapseAPI extends PluginBase {
         pk.maxPlayers = this.getServer().getMaxPlayers();
         pk.protocol = SynapseInfo.CURRENT_PROTOCOL;
         this.sendDataPacket(pk);
+        /*
         Thread ticker = new Thread(new Ticker());
         ticker.setName("SynapseAPI Ticker");
         ticker.start();
+        */
+        this.getServer().getScheduler().scheduleRepeatingTask(new Ticker(), 1);
     }
 
     public boolean isAutoConnect() {
         return autoConnect;
     }
 
+    public class Ticker implements Runnable {
+        @Override
+        public void run() {
+            tick();
+        }
+    }
+
+    /*
     public class Ticker implements Runnable {
         public void run() {
             long startTime = System.currentTimeMillis();
@@ -219,7 +230,7 @@ public class SynapseAPI extends PluginBase {
                 startTime = System.currentTimeMillis();
             }
         }
-    }
+    }*/
 
     public void tick(){
         this.synapseInterface.process();
