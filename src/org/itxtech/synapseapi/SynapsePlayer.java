@@ -26,6 +26,7 @@ import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
 import org.itxtech.synapseapi.utils.ClientData;
+import org.itxtech.synapseapi.utils.LevelUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -224,25 +225,7 @@ public class SynapsePlayer extends Player {
                 this.dataPacket(fullChunkDataPacket2);
                 FullChunkDataPacket fullChunkDataPacket3 = LevelUtil.getEmptyChunkFullPacket(-1, -1);
                 this.dataPacket(fullChunkDataPacket3);
-                RespawnPacket respawnPacket = new RespawnPacket();
-                respawnPacket.x = 0;
-                respawnPacket.y = 0;
-                respawnPacket.z = 0;
-                //this.dataPacket(respawnPacket);
-                PlayStatusPacket statusPacket1 = new PlayStatusPacket();
-                statusPacket1.status = PlayStatusPacket.PLAYER_SPAWN;
-                this.dataPacket(statusPacket1);
-                ChangeDimensionPacket changeDimensionPacket1 = new ChangeDimensionPacket();
-                changeDimensionPacket1.dimension = 0;
-                changeDimensionPacket1.x = (float)this.getX();
-                changeDimensionPacket1.y = (float)this.getY();
-                changeDimensionPacket1.z = (float)this.getZ();
-                this.dataPacket(changeDimensionPacket1);
-                RespawnPacket respawnPacket1 = new RespawnPacket();
-                respawnPacket1.x = (float)this.getX();
-                respawnPacket1.y = (float)this.getY();
-                respawnPacket1.z = (float)this.getZ();
-                this.dataPacket(respawnPacket1);
+                this.getServer().getScheduler().scheduleDelayedTask(new TransferDimensionRunnable(this), 100 * 5);
                 */
             }
 
@@ -268,19 +251,20 @@ public class SynapsePlayer extends Player {
             }
         }
 
-        if (this.isFirstTimeLogin) {
+        //if (this.isFirstTimeLogin) {
             SetHealthPacket pk = new SetHealthPacket();
             pk.health = this.getHealth();
             this.dataPacket(pk);
-        } else {
+        //} else {
+            /*
             UpdateAttributesPacket updateAttributesPacket = new UpdateAttributesPacket();
             updateAttributesPacket.entityId = 0;
             updateAttributesPacket.entries = new Attribute[]{
                     Attribute.getAttribute(Attribute.MAX_HEALTH).setMaxValue(this.getMaxHealth()).setValue(this.getHealth()),
                     Attribute.getAttribute(Attribute.MOVEMENT_SPEED).setValue(this.getMovementSpeed())
             };
-            this.dataPacket(updateAttributesPacket);
-        }
+            this.dataPacket(updateAttributesPacket);*/
+        //}
 
         SetDifficultyPacket setDifficultyPacket = new SetDifficultyPacket();
         setDifficultyPacket.difficulty = this.server.getDifficulty();
@@ -301,9 +285,9 @@ public class SynapsePlayer extends Player {
             this.setRemoveFormat(false);
         }
 
-        SetPlayerGameTypePacket pk = new SetPlayerGameTypePacket();
-        pk.gamemode = this.gamemode & 0x01;
-        this.dataPacket(pk);
+        SetPlayerGameTypePacket pk1 = new SetPlayerGameTypePacket();
+        pk1.gamemode = this.gamemode & 0x01;
+        this.dataPacket(pk1);
         this.sendSettings();
 
         if (this.gamemode == Player.SPECTATOR) {
