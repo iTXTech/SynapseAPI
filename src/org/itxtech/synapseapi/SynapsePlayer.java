@@ -301,6 +301,7 @@ public class SynapsePlayer extends Player {
             this.dataPacket(containerSetContentPacket);
         }
 
+        if (!this.isFirstTimeLogin) this.chunkRadius = this.viewDistance;
         this.forceMovement = this.teleportPosition = this.getPosition();
         this.needSlowLogin = 0;
 
