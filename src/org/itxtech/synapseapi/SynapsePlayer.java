@@ -1,15 +1,15 @@
 package org.itxtech.synapseapi;
 
+import cn.nukkit.AdventureSettings;
 import cn.nukkit.Player;
 import cn.nukkit.PlayerFood;
 import cn.nukkit.Server;
-import cn.nukkit.entity.Attribute;
 import cn.nukkit.entity.Entity;
-import cn.nukkit.event.TranslationContainer;
 import cn.nukkit.event.player.PlayerJoinEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
 import cn.nukkit.event.player.PlayerRespawnEvent;
 import cn.nukkit.item.Item;
+import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Position;
 import cn.nukkit.level.format.Chunk;
@@ -26,7 +26,6 @@ import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
 import org.itxtech.synapseapi.utils.ClientData;
-import org.itxtech.synapseapi.utils.LevelUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -126,7 +125,12 @@ public class SynapsePlayer extends Player {
                 nbt.putInt("playerGameType", this.gamemode);
             }
 
-            this.allowFlight = this.isCreative();
+            this.adventureSettings = new AdventureSettings.Builder(this)
+                    .canDestroyBlock(isAdventure())
+                    .autoJump(true)
+                    .canFly(isCreative())
+                    .isFlying(isSpectator())
+                    .build();
 
             Level level;
             if ((level = this.server.getLevelByName(nbt.getString("Level"))) == null) {
@@ -288,7 +292,6 @@ public class SynapsePlayer extends Player {
         SetPlayerGameTypePacket pk1 = new SetPlayerGameTypePacket();
         pk1.gamemode = this.gamemode & 0x01;
         this.dataPacket(pk1);
-        this.sendSettings();
 
         if (this.gamemode == Player.SPECTATOR) {
             ContainerSetContentPacket containerSetContentPacket = new ContainerSetContentPacket();
@@ -314,7 +317,11 @@ public class SynapsePlayer extends Player {
         this.spawned = true;
 
         this.server.sendRecipeList(this);
-        this.sendSettings();
+        this.getAdventureSettings().update();
+
+        this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getDisplayName(), this.getSkin());
+        this.sendFullPlayerListData(false);
+
 
         this.sendPotionEffects(this);
         this.sendData(this);
@@ -378,9 +385,7 @@ public class SynapsePlayer extends Player {
             this.spawnToAll();
         }
 
-        this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getDisplayName(), this.getSkin());
         //this.server.sendFullPlayerListData(this, false);
-        this.sendFullPlayerListData(false);
 
         //todo Updater
 
