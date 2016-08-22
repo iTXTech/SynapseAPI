@@ -8,6 +8,7 @@ import cn.nukkit.entity.Entity;
 import cn.nukkit.event.player.PlayerJoinEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
 import cn.nukkit.event.player.PlayerRespawnEvent;
+import cn.nukkit.event.server.DataPacketSendEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.level.Level;
@@ -129,7 +130,7 @@ public class SynapsePlayer extends Player {
                     .canDestroyBlock(isAdventure())
                     .autoJump(true)
                     .canFly(isCreative())
-                    .isFlying(isSpectator())
+                    .noclip(isSpectator())
                     .build();
 
             Level level;
@@ -308,6 +309,8 @@ public class SynapsePlayer extends Player {
         this.forceMovement = this.teleportPosition = this.getPosition();
         this.needSlowLogin = 0;
 
+        //this.sendFullPlayerListData(false);
+
         this.server.onPlayerLogin(this);
 
     }
@@ -321,7 +324,6 @@ public class SynapsePlayer extends Player {
 
         this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getDisplayName(), this.getSkin());
         this.sendFullPlayerListData(false);
-
 
         this.sendPotionEffects(this);
         this.sendData(this);
@@ -450,12 +452,22 @@ public class SynapsePlayer extends Player {
     @Override
     public int dataPacket(DataPacket packet, boolean needACK){
         if (!this.isSynapseLogin) return super.dataPacket(packet, needACK);
+        DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
+        this.server.getPluginManager().callEvent(ev);
+        if (ev.isCancelled()) {
+            return -1;
+        }
         return this.interfaz.putPacket(this, packet, needACK);
     }
 
     @Override
     public int directDataPacket(DataPacket packet, boolean needACK){
         if (!this.isSynapseLogin) return super.directDataPacket(packet, needACK);
+        DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
+        this.server.getPluginManager().callEvent(ev);
+        if (ev.isCancelled()) {
+            return -1;
+        }
         return this.interfaz.putPacket(this, packet, needACK, true);
     }
 
