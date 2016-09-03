@@ -42,10 +42,14 @@ public class SynapsePlayer extends Player {
     private long lastPacketTime = System.currentTimeMillis();
     public boolean isSynapseLogin = false;
 
+    protected SynapseEntry synapseEntry;
+
     private long needSlowLogin = 0;
 
-    public SynapsePlayer(SourceInterface interfaz, Long clientID, String ip, int port) {
+    public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, String ip, int port) {
         super(interfaz, clientID, ip, port);
+        this.synapseEntry = synapseEntry;
+        this.isSynapseLogin = this.synapseEntry != null;
     }
 
     public void handleLoginPacket(PlayerLoginPacket packet){
@@ -61,6 +65,10 @@ public class SynapsePlayer extends Player {
             pk.decode();
             this.handleDataPacket(pk);
         }
+    }
+
+    public SynapseEntry getSynapseEntry() {
+        return synapseEntry;
     }
 
     @Override
@@ -407,8 +415,8 @@ public class SynapsePlayer extends Player {
         this.getFoodData().sendFoodLevel();
     }
 
-    public void transfer(String hash){
-        ClientData clients = SynapseAPI.getInstance().getClientData();
+    public void transfer(String hash) {
+        ClientData clients = this.getSynapseEntry().getClientData();
         if(clients.clientList.containsKey(hash)){
             for (Entity entity: this.getLevel().getEntities()){
                 if(entity.getViewers().containsKey(this.getLoaderId())){
@@ -418,7 +426,7 @@ public class SynapsePlayer extends Player {
             TransferPacket pk = new TransferPacket();
             pk.uuid = this.uuid;
             pk.clientHash = hash;
-            SynapseAPI.getInstance().sendDataPacket(pk);
+            this.getSynapseEntry().sendDataPacket(pk);
         }
     }
 
@@ -485,7 +493,7 @@ public class SynapsePlayer extends Player {
 
         pk.entries = entries.stream().toArray(FastPlayerListPacket.Entry[]::new);
 
-        SynapseAPI.getInstance().sendDataPacket(pk);
+        this.getSynapseEntry().sendDataPacket(pk);
     }
 
 }
