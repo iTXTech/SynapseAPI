@@ -223,23 +223,16 @@ public class SynapsePlayer extends Player {
                 startGamePacket.unknownstr = "";
                 this.dataPacket(startGamePacket);
             } else {
-                /*
-                ChangeDimensionPacket changeDimensionPacket = new ChangeDimensionPacket();
-                changeDimensionPacket.dimension = 1;
-                changeDimensionPacket.x = 0;
-                changeDimensionPacket.y = 0;
-                changeDimensionPacket.z = 0;
-                this.dataPacket(changeDimensionPacket);
-                FullChunkDataPacket fullChunkDataPacket = LevelUtil.getEmptyChunkFullPacket(0, 0);
-                this.dataPacket(fullChunkDataPacket);
-                FullChunkDataPacket fullChunkDataPacket1 = LevelUtil.getEmptyChunkFullPacket(0, -1);
-                this.dataPacket(fullChunkDataPacket1);
-                FullChunkDataPacket fullChunkDataPacket2 = LevelUtil.getEmptyChunkFullPacket(-1, 0);
-                this.dataPacket(fullChunkDataPacket2);
-                FullChunkDataPacket fullChunkDataPacket3 = LevelUtil.getEmptyChunkFullPacket(-1, -1);
-                this.dataPacket(fullChunkDataPacket3);
-                this.getServer().getScheduler().scheduleDelayedTask(new TransferDimensionRunnable(this), 100 * 5);
-                */
+                //Load Screen
+                ChangeDimensionPacket changeDimensionPacket1 = new ChangeDimensionPacket();
+                changeDimensionPacket1.dimension = (byte)this.getLevel().getDimension();
+                changeDimensionPacket1.x = (float)this.getX();
+                changeDimensionPacket1.y = (float)this.getY();
+                changeDimensionPacket1.z = (float)this.getZ();
+                this.dataPacket(changeDimensionPacket1);
+                PlayStatusPacket statusPacket1 = new PlayStatusPacket();
+                statusPacket1.status = PlayStatusPacket.PLAYER_SPAWN;
+                this.dataPacket(statusPacket1);
             }
 
             SetTimePacket setTimePacket = new SetTimePacket();
@@ -262,6 +255,8 @@ public class SynapsePlayer extends Player {
                     return;
                 }
             }
+        } else {
+
         }
 
         //if (this.isFirstTimeLogin) {
@@ -321,6 +316,20 @@ public class SynapsePlayer extends Player {
 
         this.server.onPlayerLogin(this);
 
+    }
+
+    protected void forceSendEmptyChunks() {
+        int chunkPositionX = this.getFloorX() >> 4;
+        int chunkPositionZ = this.getFloorZ() >> 4;
+        for (int x = -3; x < 3; x++) {
+            for (int z = -3; z < 3; z++) {
+                FullChunkDataPacket chunk = new FullChunkDataPacket();
+                chunk.chunkX = chunkPositionX + x;
+                chunk.chunkZ = chunkPositionZ + z;
+                chunk.data = new byte[0];
+                this.dataPacket(chunk);
+            }
+        }
     }
 
     @Override
@@ -423,6 +432,17 @@ public class SynapsePlayer extends Player {
                     entity.despawnFrom(this);
                 }
             }
+            //Load Screen
+            ChangeDimensionPacket changeDimensionPacket = new ChangeDimensionPacket();
+            changeDimensionPacket.dimension = (byte)(this.getLevel().getDimension() == 0 ? 1 : 0);
+            changeDimensionPacket.x = (float)this.getX();
+            changeDimensionPacket.y = (float)this.getY();
+            changeDimensionPacket.z = (float)this.getZ();
+            this.dataPacket(changeDimensionPacket);
+            PlayStatusPacket statusPacket0 = new PlayStatusPacket();
+            statusPacket0.status = PlayStatusPacket.PLAYER_SPAWN;
+            this.dataPacket(statusPacket0);
+            this.forceSendEmptyChunks();
             TransferPacket pk = new TransferPacket();
             pk.uuid = this.uuid;
             pk.clientHash = hash;
