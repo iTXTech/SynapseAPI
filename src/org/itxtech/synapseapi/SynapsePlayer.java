@@ -26,6 +26,7 @@ import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
+import org.itxtech.synapseapi.runnable.TransferRunnable;
 import org.itxtech.synapseapi.utils.ClientData;
 
 import java.util.ArrayList;
@@ -230,9 +231,6 @@ public class SynapsePlayer extends Player {
                 changeDimensionPacket1.y = (float)this.getY();
                 changeDimensionPacket1.z = (float)this.getZ();
                 this.dataPacket(changeDimensionPacket1);
-                PlayStatusPacket statusPacket1 = new PlayStatusPacket();
-                statusPacket1.status = PlayStatusPacket.PLAYER_SPAWN;
-                this.dataPacket(statusPacket1);
             }
 
             SetTimePacket setTimePacket = new SetTimePacket();
@@ -334,6 +332,13 @@ public class SynapsePlayer extends Player {
 
     @Override
     protected void doFirstSpawn() {
+        //Load Screen
+        if (!this.isFirstTimeLogin) {
+            PlayStatusPacket statusPacket1 = new PlayStatusPacket();
+            statusPacket1.status = PlayStatusPacket.PLAYER_SPAWN;
+            this.dataPacket(statusPacket1);
+        }
+
         this.spawned = true;
 
         this.server.sendRecipeList(this);
@@ -443,10 +448,7 @@ public class SynapsePlayer extends Player {
             statusPacket0.status = PlayStatusPacket.PLAYER_SPAWN;
             this.dataPacket(statusPacket0);
             this.forceSendEmptyChunks();
-            TransferPacket pk = new TransferPacket();
-            pk.uuid = this.uuid;
-            pk.clientHash = hash;
-            this.getSynapseEntry().sendDataPacket(pk);
+            this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 1);
         }
     }
 
