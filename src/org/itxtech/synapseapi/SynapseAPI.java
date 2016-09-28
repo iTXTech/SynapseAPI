@@ -51,7 +51,7 @@ public class SynapseAPI extends PluginBase {
         boolean isMainServer = this.getConfig().getBoolean("isMainServer");
         String password = this.getConfig().getString("password");
         String serverDescription = this.getConfig().getString("description");
-        this.loadingScreen = this.getConfig().getBoolean("loadingScreen");
+        this.loadingScreen = this.getConfig().getBoolean("loadingScreen", true);
 
         for(SourceInterface interfaz : this.getServer().getNetwork().getInterfaces()){
             if(interfaz instanceof RakNetInterface){
