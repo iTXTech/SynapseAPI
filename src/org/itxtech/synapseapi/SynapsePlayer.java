@@ -25,7 +25,6 @@ import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
-import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
 import org.itxtech.synapseapi.runnable.TransferRunnable;
 import org.itxtech.synapseapi.utils.ClientData;
 
@@ -224,13 +223,15 @@ public class SynapsePlayer extends Player {
                 startGamePacket.unknownstr = "";
                 this.dataPacket(startGamePacket);
             } else {
-                //Load Screen
-                ChangeDimensionPacket changeDimensionPacket1 = new ChangeDimensionPacket();
-                changeDimensionPacket1.dimension = (byte)this.getLevel().getDimension();
-                changeDimensionPacket1.x = (float)this.getX();
-                changeDimensionPacket1.y = (float)this.getY();
-                changeDimensionPacket1.z = (float)this.getZ();
-                this.dataPacket(changeDimensionPacket1);
+                if (SynapseAPI.getInstance().isUseLoadingScreen()) {
+                    //Load Screen
+                    ChangeDimensionPacket changeDimensionPacket1 = new ChangeDimensionPacket();
+                    changeDimensionPacket1.dimension = (byte)this.getLevel().getDimension();
+                    changeDimensionPacket1.x = (float)this.getX();
+                    changeDimensionPacket1.y = (float)this.getY();
+                    changeDimensionPacket1.z = (float)this.getZ();
+                    this.dataPacket(changeDimensionPacket1);
+                }
             }
 
             SetTimePacket setTimePacket = new SetTimePacket();
@@ -437,18 +438,22 @@ public class SynapsePlayer extends Player {
                     entity.despawnFrom(this);
                 }
             }
-            //Load Screen
-            ChangeDimensionPacket changeDimensionPacket = new ChangeDimensionPacket();
-            changeDimensionPacket.dimension = (byte)(this.getLevel().getDimension() == 0 ? 1 : 0);
-            changeDimensionPacket.x = (float)this.getX();
-            changeDimensionPacket.y = (float)this.getY();
-            changeDimensionPacket.z = (float)this.getZ();
-            this.dataPacket(changeDimensionPacket);
-            PlayStatusPacket statusPacket0 = new PlayStatusPacket();
-            statusPacket0.status = PlayStatusPacket.PLAYER_SPAWN;
-            this.dataPacket(statusPacket0);
-            this.forceSendEmptyChunks();
-            this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 1);
+            if (SynapseAPI.getInstance().isUseLoadingScreen()) {
+                //Load Screen
+                ChangeDimensionPacket changeDimensionPacket = new ChangeDimensionPacket();
+                changeDimensionPacket.dimension = (byte)(this.getLevel().getDimension() == 0 ? 1 : 0);
+                changeDimensionPacket.x = (float)this.getX();
+                changeDimensionPacket.y = (float)this.getY();
+                changeDimensionPacket.z = (float)this.getZ();
+                this.dataPacket(changeDimensionPacket);
+                PlayStatusPacket statusPacket0 = new PlayStatusPacket();
+                statusPacket0.status = PlayStatusPacket.PLAYER_SPAWN;
+                this.dataPacket(statusPacket0);
+                this.forceSendEmptyChunks();
+                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 1);
+            } else {
+                new TransferRunnable(this, hash).run();
+            }
         }
     }
 

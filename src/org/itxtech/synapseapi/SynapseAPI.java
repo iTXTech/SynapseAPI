@@ -22,6 +22,7 @@ public class SynapseAPI extends PluginBase {
 
     public static boolean enable = true;
     private boolean autoConnect = true;
+    private boolean loadingScreen = true;
 
     public boolean isAutoConnect() {
         return autoConnect;
@@ -50,6 +51,7 @@ public class SynapseAPI extends PluginBase {
         boolean isMainServer = this.getConfig().getBoolean("isMainServer");
         String password = this.getConfig().getString("password");
         String serverDescription = this.getConfig().getString("description");
+        this.loadingScreen = this.getConfig().getBoolean("loadingScreen");
 
         for(SourceInterface interfaz : this.getServer().getNetwork().getInterfaces()){
             if(interfaz instanceof RakNetInterface){
@@ -72,6 +74,10 @@ public class SynapseAPI extends PluginBase {
         this.lastRecvInfo = System.currentTimeMillis();
         if (this.autoConnect) this.connect();
         */
+    }
+
+    public boolean isUseLoadingScreen() {
+        return loadingScreen;
     }
 
     public Map<String, SynapseEntry> getSynapseEntries() {
