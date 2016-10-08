@@ -5,6 +5,9 @@
   <version>1.0-SNAPSHOT</version>
   <name>Syanpse API</name>
   <description>Enable the Synapse Protocol on Nukkit</description>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
   <repositories>
   	<repository>
   		<id>regularebox-repo</id>
