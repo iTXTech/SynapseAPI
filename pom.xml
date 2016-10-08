@@ -7,8 +7,8 @@
   <description>Enable the Synapse Protocol on Nukkit</description>
   <repositories>
   	<repository>
-  		<id>potestas-repo</id>
-  		<url>https://mvn.potestas.xyz</url>
+  		<id>regularebox-repo</id>
+  		<url>http://ci.regularbox.com/plugin/repository/everything/</url>
   	</repository>
   	<repository>
   		<id>xworlds-repo</id>
