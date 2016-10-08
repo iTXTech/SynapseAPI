@@ -3,8 +3,10 @@
 #IDE
 .idea/*
 .settings/*
-.project
-.classpath
+*.project
+*.classpath
+target/
+bin/
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
