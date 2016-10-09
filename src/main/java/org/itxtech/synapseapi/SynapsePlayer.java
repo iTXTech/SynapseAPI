@@ -135,7 +135,7 @@ public class SynapsePlayer extends Player {
             }
 
             this.adventureSettings = new AdventureSettings.Builder(this)
-                    .canDestroyBlock(isAdventure())
+                    .canDestroyBlock(!isAdventure())
                     .autoJump(true)
                     .canFly(isCreative())
                     .noclip(isSpectator())
