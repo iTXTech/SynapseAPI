@@ -390,7 +390,7 @@ public class SynapsePlayer extends Player {
 
         this.noDamageTicks = 60;
 
-        for (long index : this.usedChunks.keySet()) {
+        for (Long index : this.usedChunks.keySet()) {
             Chunk.Entry chunkEntry = Level.getChunkXZ(index);
             int chunkX = chunkEntry.chunkX;
             int chunkZ = chunkEntry.chunkZ;
@@ -450,7 +450,7 @@ public class SynapsePlayer extends Player {
                 statusPacket0.status = PlayStatusPacket.PLAYER_SPAWN;
                 this.dataPacket(statusPacket0);
                 this.forceSendEmptyChunks();
-                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 1);
+                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 2);
             } else {
                 new TransferRunnable(this, hash).run();
             }
