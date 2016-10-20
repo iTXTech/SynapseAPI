@@ -390,7 +390,7 @@ public class SynapsePlayer extends Player {
 
         this.noDamageTicks = 60;
 
-        for (Long index : this.usedChunks.keySet()) {
+        for (String index : this.usedChunks.keySet()) {
             Chunk.Entry chunkEntry = Level.getChunkXZ(index);
             int chunkX = chunkEntry.chunkX;
             int chunkZ = chunkEntry.chunkZ;
