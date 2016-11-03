@@ -2,6 +2,7 @@ package org.itxtech.synapseapi;
 
 import cn.nukkit.Nukkit;
 import cn.nukkit.Server;
+import cn.nukkit.event.player.PlayerKickEvent;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.DataPacket;
 import com.google.gson.Gson;
@@ -296,7 +297,7 @@ public class SynapseEntry {
                 PlayerLogoutPacket playerLogoutPacket = (PlayerLogoutPacket) pk;
                 UUID uuid1;
                 if(this.players.containsKey(uuid1 = playerLogoutPacket.uuid)){
-                    this.players.get(uuid1).close("", playerLogoutPacket.reason, false);
+                    this.players.get(uuid1).close(playerLogoutPacket.reason, playerLogoutPacket.reason, true);
                     this.removePlayer(uuid1);
                 }
                 break;
