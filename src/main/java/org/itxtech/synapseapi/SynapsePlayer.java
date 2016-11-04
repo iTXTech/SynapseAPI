@@ -360,20 +360,10 @@ public class SynapsePlayer extends Player {
         }
 
         this.noDamageTicks = 60;
-
-<<<<<<< HEAD
-        for (long index : this.usedChunks.keySet()) {
-<<<<<<< HEAD:src/main/java/org/itxtech/synapseapi/SynapsePlayer.java
-=======
+        
         for (Long index : this.usedChunks.keySet()) {
->>>>>>> 7bcbbf399d0f098f956b6e08b8ef76ee7026727d
-            Chunk.Entry chunkEntry = Level.getChunkXZ(index);
-            int chunkX = chunkEntry.chunkX;
-            int chunkZ = chunkEntry.chunkZ;
-=======
             int chunkX = Level.getHashX(index);
             int chunkZ = Level.getHashZ(index);
->>>>>>> upstream/master:src/org/itxtech/synapseapi/SynapsePlayer.java
             for (Entity entity : this.level.getChunkEntities(chunkX, chunkZ).values()) {
                 if (this != entity && !entity.closed && entity.isAlive()) {
                     entity.spawnTo(this);
