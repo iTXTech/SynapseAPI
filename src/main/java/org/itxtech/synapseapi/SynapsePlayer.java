@@ -6,6 +6,7 @@ import cn.nukkit.PlayerFood;
 import cn.nukkit.Server;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.event.player.PlayerJoinEvent;
+import cn.nukkit.event.player.PlayerKickEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
 import cn.nukkit.event.player.PlayerRespawnEvent;
 import cn.nukkit.event.server.DataPacketSendEvent;
@@ -13,7 +14,6 @@ import cn.nukkit.item.Item;
 import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Position;
-import cn.nukkit.level.format.Chunk;
 import cn.nukkit.math.NukkitMath;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.DoubleTag;
@@ -22,7 +22,6 @@ import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
 import cn.nukkit.utils.TextFormat;
 import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
-import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.synapseapi.runnable.TransferRunnable;
@@ -30,7 +29,6 @@ import org.itxtech.synapseapi.utils.ClientData;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -39,12 +37,11 @@ import java.util.UUID;
 public class SynapsePlayer extends Player {
 
     private boolean isFirstTimeLogin = false;
-    private long lastPacketTime = System.currentTimeMillis();
     public boolean isSynapseLogin = false;
 
     protected SynapseEntry synapseEntry;
 
-    private long needSlowLogin = 0;
+    private long slowLoginUntil = 0;
 
     public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, String ip, int port) {
         super(interfaz, clientID, ip, port);
@@ -52,7 +49,7 @@ public class SynapsePlayer extends Player {
         this.isSynapseLogin = this.synapseEntry != null;
     }
 
-    public void handleLoginPacket(PlayerLoginPacket packet){
+    public void handleLoginPacket(PlayerLoginPacket packet) {
         if (!this.isSynapseLogin) {
             super.handleDataPacket(packet);
             return;
@@ -73,18 +70,21 @@ public class SynapsePlayer extends Player {
 
     @Override
     protected void processLogin() {
-        if (!this.isSynapseLogin) {      
+        if (!this.isSynapseLogin) {
             super.processLogin();
             return;
         }
-        if (needSlowLogin == 0) {
+
+        if (!this.isFirstTimeLogin || this.slowLoginUntil == 0) {
             if (!this.server.isWhitelisted((this.getName()).toLowerCase())) {
-                this.close(this.getLeaveMessage(), "Server is white-listed");
+                this.kick(PlayerKickEvent.Reason.NOT_WHITELISTED, "Server is white-listed");
 
                 return;
-            } else if (this.server.getNameBans().isBanned(this.getName().toLowerCase()) || this.server.getIPBans().isBanned(this.getAddress())) {
-                this.close(this.getLeaveMessage(), "You are banned");
-
+            } else if (this.server.getNameBans().isBanned(this.getName().toLowerCase())) {
+                this.kick(PlayerKickEvent.Reason.NAME_BANNED, "You are banned");
+                return;
+            } else if (this.server.getIPBans().isBanned(this.getAddress())) {
+                this.kick(PlayerKickEvent.Reason.IP_BANNED, "You are banned");
                 return;
             }
 
@@ -96,22 +96,18 @@ public class SynapsePlayer extends Player {
             }
 
             for (Player p : new ArrayList<>(this.server.getOnlinePlayers().values())) {
-                if (p != this && p.getName() != null && this.getName() != null && Objects.equals(p.getName().toLowerCase(), this.getName().toLowerCase())) {
-                    if (!p.kick("logged in from another location")) {
-                        this.close(this.getLeaveMessage(), "Logged in from another location");
-
+                if (p != this && p.getName() != null && p.getName().equalsIgnoreCase(this.getName())) {
+                    if (!p.kick(PlayerKickEvent.Reason.NEW_CONNECTION, "logged in from another location")) {
+                        this.close(this.getLeaveMessage(), "Already connected");
                         return;
                     }
                 } else if (p.loggedIn && this.getUniqueId().equals(p.getUniqueId())) {
-                    if (!p.kick("logged in from another location")) {
-                        this.close(this.getLeaveMessage(), "Logged in from another location");
-
+                    if (!p.kick(PlayerKickEvent.Reason.NEW_CONNECTION, "logged in from another location")) {
+                        this.close(this.getLeaveMessage(), "Already connected");
                         return;
                     }
                 }
             }
-
-            this.setNameTag(this.username);
 
             CompoundTag nbt = this.server.getOfflinePlayerData(this.username);
             if (nbt == null) {
@@ -122,7 +118,13 @@ public class SynapsePlayer extends Player {
 
             this.playedBefore = (nbt.getLong("lastPlayed") - nbt.getLong("firstPlayed")) > 1;
 
+            boolean alive = true;
+
             nbt.putString("NameTag", this.username);
+
+            if (0 >= nbt.getShort("Health")) {
+                alive = false;
+            }
 
             int exp = nbt.getInt("EXP");
             int expLevel = nbt.getInt("expLevel");
@@ -142,7 +144,7 @@ public class SynapsePlayer extends Player {
                     .build();
 
             Level level;
-            if ((level = this.server.getLevelByName(nbt.getString("Level"))) == null) {
+            if ((level = this.server.getLevelByName(nbt.getString("Level"))) == null || !alive) {
                 this.setLevel(this.server.getDefaultLevel());
                 nbt.putString("Level", this.level.getName());
                 nbt.getList("Pos", DoubleTag.class)
@@ -174,8 +176,6 @@ public class SynapsePlayer extends Player {
             float foodSaturationLevel = this.namedTag.getFloat("foodSaturationLevel");
             this.foodData = new PlayerFood(this, foodLevel, foodSaturationLevel);
 
-            this.server.addOnlinePlayer(this, false);
-
             PlayerLoginEvent ev;
             this.server.getPluginManager().callEvent(ev = new PlayerLoginEvent(this, "Plugin reason"));
             if (ev.isCancelled()) {
@@ -184,6 +184,7 @@ public class SynapsePlayer extends Player {
                 return;
             }
 
+            this.server.addOnlinePlayer(this);
             this.loggedIn = true;
 
             if (this.isCreative()) {
@@ -198,84 +199,67 @@ public class SynapsePlayer extends Player {
             statusPacket.status = PlayStatusPacket.LOGIN_SUCCESS;
             this.dataPacket(statusPacket);
 
-            if (this.spawnPosition == null && this.namedTag.contains("SpawnLevel") && (level = this.server.getLevelByName(this.namedTag.getString("SpawnLevel"))) != null) {
-                this.spawnPosition = new Position(this.namedTag.getInt("SpawnX"), this.namedTag.getInt("SpawnY"), this.namedTag.getInt("SpawnZ"), level);
+            this.dataPacket(new ResourcePacksInfoPacket());
+
+            if (this.isFirstTimeLogin && this.slowLoginUntil == 0) {
+                this.slowLoginUntil = System.currentTimeMillis() + 50;
+                return;
             }
-
-            Position spawnPosition = this.getSpawn();
-
-            if (this.isFirstTimeLogin) {
-                StartGamePacket startGamePacket = new StartGamePacket();
-                startGamePacket.seed = -1;
-                startGamePacket.dimension = (byte) (getLevel().getDimension() & 0xFF);
-                startGamePacket.x = (float) this.x;
-                startGamePacket.y = (float) this.y;
-                startGamePacket.z = (float) this.z;
-                startGamePacket.spawnX = (int) spawnPosition.x;
-                startGamePacket.spawnY = (int) spawnPosition.y;
-                startGamePacket.spawnZ = (int) spawnPosition.z;
-                startGamePacket.generator = 1; //0 old, 1 infinite, 2 flat
-                startGamePacket.gamemode = this.gamemode & 0x01;
-                startGamePacket.eid = 0; //Always use EntityID as zero for the actual player
-                startGamePacket.b1 = true;
-                startGamePacket.b2 = true;
-                startGamePacket.b3 = false;
-                startGamePacket.unknownstr = "";
-                this.dataPacket(startGamePacket);
-            } else {
-                if (SynapseAPI.getInstance().isUseLoadingScreen()) {
-                    //Load Screen
-                    ChangeDimensionPacket changeDimensionPacket1 = new ChangeDimensionPacket();
-                    changeDimensionPacket1.dimension = (byte)this.getLevel().getDimension();
-                    changeDimensionPacket1.x = (float)this.getX();
-                    changeDimensionPacket1.y = (float)this.getY();
-                    changeDimensionPacket1.z = (float)this.getZ();
-                    this.dataPacket(changeDimensionPacket1);
-                }
-            }
-
-            SetTimePacket setTimePacket = new SetTimePacket();
-            setTimePacket.time = this.level.getTime();
-            setTimePacket.started = !this.level.stopTime;
-            this.dataPacket(setTimePacket);
-
-            SetSpawnPositionPacket setSpawnPositionPacket = new SetSpawnPositionPacket();
-            setSpawnPositionPacket.x = (int) spawnPosition.x;
-            setSpawnPositionPacket.y = (int) spawnPosition.y;
-            setSpawnPositionPacket.z = (int) spawnPosition.z;
-            this.dataPacket(setSpawnPositionPacket);
         }
+
+        if (this.spawnPosition == null && this.namedTag.contains("SpawnLevel") && (level = this.server.getLevelByName(this.namedTag.getString("SpawnLevel"))) != null) {
+            this.spawnPosition = new Position(this.namedTag.getInt("SpawnX"), this.namedTag.getInt("SpawnY"), this.namedTag.getInt("SpawnZ"), level);
+        }
+
+        Position spawnPosition = this.getSpawn();
 
         if (this.isFirstTimeLogin) {
-            if (this.needSlowLogin == 0) {
-                return;
-            } else {
-                if (System.currentTimeMillis() - this.needSlowLogin < 100) {
-                    return;
-                }
-            }
+            StartGamePacket startGamePacket = new StartGamePacket();
+            startGamePacket.entityUniqueId = 0;
+            startGamePacket.entityRuntimeId = 0;
+            startGamePacket.x = (float) this.x;
+            startGamePacket.y = (float) this.y;
+            startGamePacket.z = (float) this.z;
+            startGamePacket.seed = -1;
+            startGamePacket.dimension = (byte) (this.level.getDimension() & 0xff);
+            startGamePacket.gamemode = this.gamemode & 0x01;
+            startGamePacket.difficulty = this.server.getDifficulty();
+            startGamePacket.spawnX = (int) spawnPosition.x;
+            startGamePacket.spawnY = (int) spawnPosition.y;
+            startGamePacket.spawnZ = (int) spawnPosition.z;
+            startGamePacket.hasAchievementsDisabled = true;
+            startGamePacket.dayCycleStopTime = -1;
+            startGamePacket.eduMode = false;
+            startGamePacket.rainLevel = 0;
+            startGamePacket.lightningLevel = 0;
+            startGamePacket.commandsEnabled = true;
+            startGamePacket.levelId = "";
+            startGamePacket.worldName = this.getServer().getNetwork().getName();
+            startGamePacket.generator = 1; //0 old, 1 infinite, 2 flat
+            this.dataPacket(startGamePacket);
         } else {
-
+            if (SynapseAPI.getInstance().isUseLoadingScreen()) {
+                //Load Screen
+                ChangeDimensionPacket changeDimensionPacket1 = new ChangeDimensionPacket();
+                changeDimensionPacket1.dimension = (byte) this.getLevel().getDimension();
+                changeDimensionPacket1.x = (float) this.getX();
+                changeDimensionPacket1.y = (float) this.getY();
+                changeDimensionPacket1.z = (float) this.getZ();
+                this.dataPacket(changeDimensionPacket1);
+            }
         }
 
-        //if (this.isFirstTimeLogin) {
-            SetHealthPacket pk = new SetHealthPacket();
-            pk.health = this.getHealth();
-            this.dataPacket(pk);
-        //} else {
-            /*
-            UpdateAttributesPacket updateAttributesPacket = new UpdateAttributesPacket();
-            updateAttributesPacket.entityId = 0;
-            updateAttributesPacket.entries = new Attribute[]{
-                    Attribute.getAttribute(Attribute.MAX_HEALTH).setMaxValue(this.getMaxHealth()).setValue(this.getHealth()),
-                    Attribute.getAttribute(Attribute.MOVEMENT_SPEED).setValue(this.getMovementSpeed())
-            };
-            this.dataPacket(updateAttributesPacket);*/
-        //}
+        SetTimePacket setTimePacket = new SetTimePacket();
+        setTimePacket.time = this.level.getTime();
+        setTimePacket.started = !this.level.stopTime;
+        this.dataPacket(setTimePacket);
 
-        SetDifficultyPacket setDifficultyPacket = new SetDifficultyPacket();
-        setDifficultyPacket.difficulty = this.server.getDifficulty();
-        this.dataPacket(setDifficultyPacket);
+        this.setMovementSpeed(DEFAULT_SPEED);
+
+        this.sendAttributes(true);
+
+        this.setNameTagVisible(true);
+        this.setNameTagAlwaysVisible(true);
 
         this.server.getLogger().info(this.getServer().getLanguage().translateString("nukkit.player.logIn", new String[]{
                 TextFormat.AQUA + this.username + TextFormat.WHITE,
@@ -292,10 +276,6 @@ public class SynapsePlayer extends Player {
             this.setRemoveFormat(false);
         }
 
-        SetPlayerGameTypePacket pk1 = new SetPlayerGameTypePacket();
-        pk1.gamemode = this.gamemode & 0x01;
-        this.dataPacket(pk1);
-
         if (this.gamemode == Player.SPECTATOR) {
             ContainerSetContentPacket containerSetContentPacket = new ContainerSetContentPacket();
             containerSetContentPacket.windowid = ContainerSetContentPacket.SPECIAL_CREATIVE;
@@ -307,14 +287,15 @@ public class SynapsePlayer extends Player {
             this.dataPacket(containerSetContentPacket);
         }
 
+        this.setEnableClientCommand(true);
+
+        this.server.sendFullPlayerListData(this);
+
         if (!this.isFirstTimeLogin) this.chunkRadius = this.viewDistance;
         this.forceMovement = this.teleportPosition = this.getPosition();
-        this.needSlowLogin = 0;
-
-        //this.sendFullPlayerListData(false);
 
         this.server.onPlayerLogin(this);
-
+        this.isFirstTimeLogin = false;
     }
 
     protected void forceSendEmptyChunks() {
@@ -333,20 +314,10 @@ public class SynapsePlayer extends Player {
 
     @Override
     protected void doFirstSpawn() {
-        //Load Screen
-        if (!this.isFirstTimeLogin) {
-            PlayStatusPacket statusPacket1 = new PlayStatusPacket();
-            statusPacket1.status = PlayStatusPacket.PLAYER_SPAWN;
-            this.dataPacket(statusPacket1);
-        }
-
         this.spawned = true;
 
         this.server.sendRecipeList(this);
         this.getAdventureSettings().update();
-
-        this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getDisplayName(), this.getSkin());
-        this.sendFullPlayerListData(false);
 
         this.sendPotionEffects(this);
         this.sendData(this);
@@ -391,9 +362,14 @@ public class SynapsePlayer extends Player {
         this.noDamageTicks = 60;
 
         for (long index : this.usedChunks.keySet()) {
+<<<<<<< HEAD:src/main/java/org/itxtech/synapseapi/SynapsePlayer.java
             Chunk.Entry chunkEntry = Level.getChunkXZ(index);
             int chunkX = chunkEntry.chunkX;
             int chunkZ = chunkEntry.chunkZ;
+=======
+            int chunkX = Level.getHashX(index);
+            int chunkZ = Level.getHashZ(index);
+>>>>>>> upstream/master:src/org/itxtech/synapseapi/SynapsePlayer.java
             for (Entity entity : this.level.getChunkEntities(chunkX, chunkZ).values()) {
                 if (this != entity && !entity.closed && entity.isAlive()) {
                     entity.spawnTo(this);
@@ -409,8 +385,6 @@ public class SynapsePlayer extends Player {
         if (!this.isSpectator()) {
             this.spawnToAll();
         }
-
-        //this.server.sendFullPlayerListData(this, false);
 
         //todo Updater
 
@@ -432,25 +406,25 @@ public class SynapsePlayer extends Player {
 
     public void transfer(String hash) {
         ClientData clients = this.getSynapseEntry().getClientData();
-        if(clients.clientList.containsKey(hash)){
-            for (Entity entity: this.getLevel().getEntities()){
-                if(entity.getViewers().containsKey(this.getLoaderId())){
+        if (clients.clientList.containsKey(hash)) {
+            for (Entity entity : this.getLevel().getEntities()) {
+                if (entity.getViewers().containsKey(this.getLoaderId())) {
                     entity.despawnFrom(this);
                 }
             }
             if (SynapseAPI.getInstance().isUseLoadingScreen()) {
                 //Load Screen
                 ChangeDimensionPacket changeDimensionPacket = new ChangeDimensionPacket();
-                changeDimensionPacket.dimension = (byte)(this.getLevel().getDimension() == 0 ? 1 : 0);
-                changeDimensionPacket.x = (float)this.getX();
-                changeDimensionPacket.y = (float)this.getY();
-                changeDimensionPacket.z = (float)this.getZ();
+                changeDimensionPacket.dimension = (byte) (this.getLevel().getDimension() == 0 ? 1 : 0);
+                changeDimensionPacket.x = (float) this.getX();
+                changeDimensionPacket.y = (float) this.getY();
+                changeDimensionPacket.z = (float) this.getZ();
                 this.dataPacket(changeDimensionPacket);
                 PlayStatusPacket statusPacket0 = new PlayStatusPacket();
                 statusPacket0.status = PlayStatusPacket.PLAYER_SPAWN;
                 this.dataPacket(statusPacket0);
                 this.forceSendEmptyChunks();
-                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 1);
+                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 2);
             } else {
                 new TransferRunnable(this, hash).run();
             }
@@ -458,45 +432,44 @@ public class SynapsePlayer extends Player {
     }
 
     @Override
-    public void handleDataPacket(DataPacket packet){
-        if (!this.isSynapseLogin) {      
+    public void handleDataPacket(DataPacket packet) {
+        if (!this.isSynapseLogin) {
             super.handleDataPacket(packet);
             return;
         }
-        this.lastPacketTime = System.currentTimeMillis();
         super.handleDataPacket(packet);
     }
 
     @Override
-    public boolean onUpdate(int currentTick){
+    public boolean onUpdate(int currentTick) {
         if (!this.isSynapseLogin) {
             return super.onUpdate(currentTick);
         }
-        if (this.isFirstTimeLogin && this.needSlowLogin != 0) this.processLogin();
-        if((System.currentTimeMillis() - this.lastPacketTime) >= 5 * 60 * 1000){//5 minutes time out
-            this.close("", "timeout");
-            return false;
+        if (this.loggedIn && this.isFirstTimeLogin && System.currentTimeMillis() >= this.slowLoginUntil) {
+            this.processLogin();
         }
         return super.onUpdate(currentTick);
     }
 
-    public void setUniqueId(UUID uuid){
+    public void setUniqueId(UUID uuid) {
         this.uuid = uuid;
     }
 
     @Override
-    public int dataPacket(DataPacket packet, boolean needACK){
+    public int dataPacket(DataPacket packet, boolean needACK) {
         if (!this.isSynapseLogin) return super.dataPacket(packet, needACK);
         DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
         this.server.getPluginManager().callEvent(ev);
         if (ev.isCancelled()) {
             return -1;
         }
+        packet.encode();
+        //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{packet.getBuffer()[0]}) + "  len: " + packet.getBuffer().length);
         return this.interfaz.putPacket(this, packet, needACK);
     }
 
     @Override
-    public int directDataPacket(DataPacket packet, boolean needACK){
+    public int directDataPacket(DataPacket packet, boolean needACK) {
         if (!this.isSynapseLogin) return super.directDataPacket(packet, needACK);
         DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
         this.server.getPluginManager().callEvent(ev);
