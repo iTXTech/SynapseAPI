@@ -360,8 +360,8 @@ public class SynapsePlayer extends Player {
         }
 
         this.noDamageTicks = 60;
-
-        for (long index : this.usedChunks.keySet()) {
+        
+        for (Long index : this.usedChunks.keySet()) {
             int chunkX = Level.getHashX(index);
             int chunkZ = Level.getHashZ(index);
             for (Entity entity : this.level.getChunkEntities(chunkX, chunkZ).values()) {
