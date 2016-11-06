@@ -7,21 +7,18 @@ import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
 /**
  * Created by boybook on 16/9/26.
  */
-public class TransferRunnable implements Runnable {
+public class SendPlayerSpawnRunnable implements Runnable {
 
     private SynapsePlayer player;
-    private String hash;
 
-    public TransferRunnable(SynapsePlayer player, String hash) {
+    public SendPlayerSpawnRunnable(SynapsePlayer player) {
         this.player = player;
-        this.hash = hash;
     }
 
     @Override
     public void run() {
-        TransferPacket pk = new TransferPacket();
-        pk.uuid = this.player.getUniqueId();
-        pk.clientHash = hash;
-        this.player.getSynapseEntry().sendDataPacket(pk);
+        PlayStatusPacket statusPacket0 = new PlayStatusPacket();
+        statusPacket0.status = PlayStatusPacket.PLAYER_SPAWN;
+        this.player.dataPacket(statusPacket0);
     }
 }

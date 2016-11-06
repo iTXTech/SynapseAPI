@@ -24,6 +24,7 @@ import cn.nukkit.utils.TextFormat;
 import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
+import org.itxtech.synapseapi.runnable.SendPlayerSpawnRunnable;
 import org.itxtech.synapseapi.runnable.TransferRunnable;
 import org.itxtech.synapseapi.utils.ClientData;
 
@@ -295,7 +296,7 @@ public class SynapsePlayer extends Player {
         this.forceMovement = this.teleportPosition = this.getPosition();
 
         this.server.onPlayerLogin(this);
-        this.isFirstTimeLogin = false;
+        this.slowLoginUntil = -1;
     }
 
     protected void forceSendEmptyChunks() {
@@ -414,11 +415,9 @@ public class SynapsePlayer extends Player {
                 changeDimensionPacket.y = (float) this.getY();
                 changeDimensionPacket.z = (float) this.getZ();
                 this.dataPacket(changeDimensionPacket);
-                PlayStatusPacket statusPacket0 = new PlayStatusPacket();
-                statusPacket0.status = PlayStatusPacket.PLAYER_SPAWN;
-                this.dataPacket(statusPacket0);
                 this.forceSendEmptyChunks();
-                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 2);
+                this.getServer().getScheduler().scheduleDelayedTask(new SendPlayerSpawnRunnable(this), 8);
+                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 10);
             } else {
                 new TransferRunnable(this, hash).run();
             }
@@ -439,7 +438,7 @@ public class SynapsePlayer extends Player {
         if (!this.isSynapseLogin) {
             return super.onUpdate(currentTick);
         }
-        if (this.loggedIn && this.isFirstTimeLogin && System.currentTimeMillis() >= this.slowLoginUntil) {
+        if (this.loggedIn && this.slowLoginUntil != -1 && System.currentTimeMillis() >= this.slowLoginUntil) {
             this.processLogin();
         }
         return super.onUpdate(currentTick);
