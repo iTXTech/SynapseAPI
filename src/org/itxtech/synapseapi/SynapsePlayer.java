@@ -257,7 +257,7 @@ public class SynapsePlayer extends Player {
 
         this.setMovementSpeed(DEFAULT_SPEED);
 
-        this.sendAttributes(true);
+        this.sendAttributes();
 
         this.setNameTagVisible(true);
         this.setNameTagAlwaysVisible(true);
