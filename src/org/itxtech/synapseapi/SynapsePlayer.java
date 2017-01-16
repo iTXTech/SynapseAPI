@@ -24,6 +24,7 @@ import cn.nukkit.utils.TextFormat;
 import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
+import org.itxtech.synapseapi.runnable.SendChangeDimensionRunnable;
 import org.itxtech.synapseapi.runnable.SendPlayerSpawnRunnable;
 import org.itxtech.synapseapi.runnable.TransferRunnable;
 import org.itxtech.synapseapi.utils.ClientData;
@@ -238,16 +239,6 @@ public class SynapsePlayer extends Player {
             startGamePacket.worldName = this.getServer().getNetwork().getName();
             startGamePacket.generator = 1; //0 old, 1 infinite, 2 flat
             this.dataPacket(startGamePacket);
-        } else {
-            if (SynapseAPI.getInstance().isUseLoadingScreen()) {
-                //Load Screen
-                ChangeDimensionPacket changeDimensionPacket1 = new ChangeDimensionPacket();
-                changeDimensionPacket1.dimension = (byte) this.getLevel().getDimension();
-                changeDimensionPacket1.x = (float) this.getX();
-                changeDimensionPacket1.y = (float) this.getY();
-                changeDimensionPacket1.z = (float) this.getZ();
-                this.dataPacket(changeDimensionPacket1);
-            }
         }
 
         SetTimePacket setTimePacket = new SetTimePacket();
@@ -409,14 +400,10 @@ public class SynapsePlayer extends Player {
             }
             if (SynapseAPI.getInstance().isUseLoadingScreen()) {
                 //Load Screen
-                ChangeDimensionPacket changeDimensionPacket = new ChangeDimensionPacket();
-                changeDimensionPacket.dimension = (byte) (this.getLevel().getDimension() == 0 ? 1 : 0);
-                changeDimensionPacket.x = (float) this.getX();
-                changeDimensionPacket.y = (float) this.getY();
-                changeDimensionPacket.z = (float) this.getZ();
-                this.dataPacket(changeDimensionPacket);
+                new SendChangeDimensionRunnable(this, 1).run();
                 this.forceSendEmptyChunks();
                 this.getServer().getScheduler().scheduleDelayedTask(new SendPlayerSpawnRunnable(this), 8);
+                this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 0), 9);
                 this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 10);
             } else {
                 new TransferRunnable(this, hash).run();
