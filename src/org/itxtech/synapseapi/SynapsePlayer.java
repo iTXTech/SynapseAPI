@@ -53,7 +53,7 @@ public class SynapsePlayer extends Player {
 
     public void handleLoginPacket(PlayerLoginPacket packet) {
         if (!this.isSynapseLogin) {
-            super.handleDataPacket(packet);
+            super.handleDataPacket(SynapseAPI.getInstance().getPacket(packet.cachedLoginPacket));
             return;
         }
         this.isFirstTimeLogin = packet.isFirstTime;

@@ -1,6 +1,13 @@
 package org.itxtech.synapseapi.network.synlib;
 
+import cn.nukkit.Server;
 import cn.nukkit.utils.ThreadedLogger;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import org.itxtech.synapseapi.network.protocol.spp.SynapseDataPacket;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -9,17 +16,20 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class SynapseClient extends Thread {
 
-    public static final String VERSION = "0.2.1";
+    public static final String VERSION = "0.3.0";
 
     private ThreadedLogger logger;
     private String interfaz;
     private int port;
     private boolean shutdown = false;
-    protected ConcurrentLinkedQueue<byte[]> externalQueue;
-    protected ConcurrentLinkedQueue<byte[]> internalQueue;
-    private boolean needAuth = false;
-    private boolean connected = true;
+    protected ConcurrentLinkedQueue<SynapseDataPacket> externalQueue;
+    protected ConcurrentLinkedQueue<SynapseDataPacket> internalQueue;
+    private boolean needAuth = true;
+    private boolean connected = false;
     public boolean needReconnect = false;
+
+    private EventLoopGroup clientGroup;
+    private Session session;
 
     public SynapseClient(ThreadedLogger logger, int port) {
         this(logger, port, "127.0.0.1");
@@ -59,11 +69,11 @@ public class SynapseClient extends Thread {
         this.connected = connected;
     }
 
-    public ConcurrentLinkedQueue<byte[]> getExternalQueue() {
+    public ConcurrentLinkedQueue<SynapseDataPacket> getExternalQueue() {
         return externalQueue;
     }
 
-    public ConcurrentLinkedQueue<byte[]> getInternalQueue() {
+    public ConcurrentLinkedQueue<SynapseDataPacket> getInternalQueue() {
         return internalQueue;
     }
 
@@ -72,8 +82,8 @@ public class SynapseClient extends Thread {
     }
 
     public void shutdown() {
-    this.shutdown = true;
-}
+        this.shutdown = true;
+    }
 
     public int getPort() {
         return port;
@@ -91,11 +101,11 @@ public class SynapseClient extends Thread {
         this.shutdown();
     }
 
-    public void pushMainToThreadPacket(byte[] data) {
+    public void pushMainToThreadPacket(SynapseDataPacket data) {
         this.internalQueue.offer(data);
     }
 
-    public byte[] readMainToThreadPacket() {
+    public SynapseDataPacket readMainToThreadPacket() {
         return this.internalQueue.poll();
     }
 
@@ -103,29 +113,60 @@ public class SynapseClient extends Thread {
         return this.internalQueue.size();
     }
 
-    public void pushThreadToMainPacket(byte[] data) {
+    public void pushThreadToMainPacket(SynapseDataPacket data) {
         this.externalQueue.offer(data);
     }
 
-    public byte[] readThreadToMainPacket() {
+    public SynapseDataPacket readThreadToMainPacket() {
         return this.externalQueue.poll();
     }
 
+    public Session getSession() {
+        return session;
+    }
+
     public void run() {
-        this.setName("SynLib Thread #" + Thread.currentThread().getId());
+        this.setName("SynLib Client Thread #" + Thread.currentThread().getId());
         Runtime.getRuntime().addShutdownHook(new ShutdownHandler());
         try {
-            SynapseSocket socket = new SynapseSocket(this.getLogger(), this.port, this.interfaz);
-            new Session(this, socket);
+            this.session = new Session(this);
+            this.connect();
+            this.session.run();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private class ShutdownHandler extends Thread {
+    public boolean connect() {
+        clientGroup = new NioEventLoopGroup();
+        try {
+            Bootstrap b = new Bootstrap();  //服务引导程序，服务器端快速启动程序
+            b.group(clientGroup)
+                    .channel(NioSocketChannel.class)
+                    .option(ChannelOption.SO_KEEPALIVE, true)
+                    .handler(new SynapseClientInitializer(this));
+
+            b.connect(this.interfaz, this.port).get();
+            // 等待服务端监听端口关闭，等待服务端链路关闭之后main函数才退出
+            //future.channel().closeFuture().sync();
+            return true;
+        } catch (Exception e) {
+            Server.getInstance().getLogger().alert("Synapse Client can't connect to server: " + this.interfaz + ":" + this.port);
+            Server.getInstance().getLogger().alert("Reason: " + e.getLocalizedMessage());
+            Server.getInstance().getLogger().warning("We will reconnect in 3 seconds");
+            this.reconnect();
+            return false;
+        }
+    }
+
+    public EventLoopGroup getClientGroup() {
+        return clientGroup;
+    }
+
+    public class ShutdownHandler extends Thread {
         public void run() {
             if (!shutdown) {
-                logger.emergency("SynLib crashed!");
+                logger.emergency("SynLib Client crashed!");
             }
         }
     }
