@@ -288,6 +288,10 @@ public class SynapsePlayer extends Player {
 
         this.server.onPlayerLogin(this);
         this.slowLoginUntil = -1;
+        
+        ChunkRadiusUpdatedPacket chunkRadiusUpdatePacket = new ChunkRadiusUpdatedPacket();
+        chunkRadiusUpdatePacket.radius = this.chunkRadius;
+        this.dataPacket(chunkRadiusUpdatePacket);
     }
 
     protected void forceSendEmptyChunks() {
