@@ -124,7 +124,7 @@ public class Session {
 
     public void writePacket(SynapseDataPacket pk) {
         if (this.channel != null) {
-            Server.getInstance().getLogger().debug("client-ChannelWrite: pk=" + pk.getClass().getSimpleName() + " pkLen=" + pk.getBuffer().length);
+            //Server.getInstance().getLogger().debug("client-ChannelWrite: pk=" + pk.getClass().getSimpleName() + " pkLen=" + pk.getBuffer().length);
             this.channel.writeAndFlush(pk);
         }
     }
