@@ -1,5 +1,6 @@
 package org.itxtech.synapseapi.utils;
 
+import cn.nukkit.Server;
 import cn.nukkit.network.protocol.*;
 
 /**
@@ -15,7 +16,7 @@ public class DataPacketEidReplacer {
     private DataPacket packet;
 
     public DataPacketEidReplacer(DataPacket pk) {
-        this.packet = pk;
+        this.packet = pk.clone();
     }
 
     public DataPacket replace(long from, long to) {
@@ -33,6 +34,9 @@ public class DataPacketEidReplacer {
                 if (((SetEntityLinkPacket) packet).rider == from) ((SetEntityLinkPacket) packet).rider = to;
                 if (((SetEntityLinkPacket) packet).riding == from) ((SetEntityLinkPacket) packet).riding = to;
                 break;
+            case SetEntityDataPacket.NETWORK_ID:
+                if (((SetEntityDataPacket) packet).eid == from) ((SetEntityDataPacket) packet).eid = to;
+                break;
             case UpdateAttributesPacket.NETWORK_ID:
                 if (((UpdateAttributesPacket) packet).entityId == from) ((UpdateAttributesPacket) packet).entityId = to;
                 break;
@@ -48,6 +52,13 @@ public class DataPacketEidReplacer {
             case MobEffectPacket.NETWORK_ID:
                 if (((MobEffectPacket) packet).eid == from) ((MobEffectPacket) packet).eid = to;
                 break;
+            case MoveEntityPacket.NETWORK_ID:
+                if (((MoveEntityPacket) packet).eid == from) ((MoveEntityPacket) packet).eid = to;
+                break;
+            case MobArmorEquipmentPacket.NETWORK_ID:
+                if (((MobArmorEquipmentPacket) packet).eid == from) ((MobArmorEquipmentPacket) packet).eid = to;
+                break;
+
         }
         return this.packet;
     }
