@@ -184,7 +184,7 @@ public class SynapseEntry {
             pk.load = this.getSynapse().getServer().getTickUsageAverage();
             pk.upTime = (System.currentTimeMillis() - Nukkit.START_TIME) / 1000;
             this.sendDataPacket(pk);
-            this.getSynapse().getServer().getLogger().debug(time + " -> Sending Heartbeat Packet to " + this.getHash());
+            //this.getSynapse().getServer().getLogger().debug(time + " -> Sending Heartbeat Packet to " + this.getHash());
         }
 
         /*

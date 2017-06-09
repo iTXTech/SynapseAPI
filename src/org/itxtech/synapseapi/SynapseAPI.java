@@ -1,10 +1,12 @@
 package org.itxtech.synapseapi;
 
+import cn.nukkit.Server;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.RakNetInterface;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.plugin.PluginBase;
+import cn.nukkit.utils.Binary;
 import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 
 import java.util.*;
@@ -104,14 +106,14 @@ public class SynapseAPI extends PluginBase {
     }
 
     public DataPacket getPacket(byte[] buffer){
-        byte pid = buffer[0];
+        byte pid = buffer[0] == (byte) 0xfe ? (byte) 0xff : buffer[0];
+
         byte start = 1;
-        if(pid == (byte) 0xfe){
-            pid = buffer[1];
-            start++;
-        }
-        DataPacket data = this.getServer().getNetwork().getPacket(pid);
+        DataPacket data;
+        data = this.getServer().getNetwork().getPacket(pid);
+
         if(data == null){
+            Server.getInstance().getLogger().notice("C => S 未找到匹配数据包");
             return null;
         }
         data.setBuffer(buffer, start);

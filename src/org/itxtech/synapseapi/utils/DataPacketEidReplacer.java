@@ -1,6 +1,5 @@
 package org.itxtech.synapseapi.utils;
 
-import cn.nukkit.Server;
 import cn.nukkit.network.protocol.*;
 
 /**
@@ -58,7 +57,9 @@ public class DataPacketEidReplacer {
             case MobArmorEquipmentPacket.NETWORK_ID:
                 if (((MobArmorEquipmentPacket) packet).eid == from) ((MobArmorEquipmentPacket) packet).eid = to;
                 break;
-
+            case ContainerSetContentPacket.NETWORK_ID:
+                if (((ContainerSetContentPacket) packet).eid == from) ((ContainerSetContentPacket) packet).eid = to;
+                break;
         }
         return this.packet;
     }
