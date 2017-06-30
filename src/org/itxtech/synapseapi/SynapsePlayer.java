@@ -256,8 +256,6 @@ public class SynapsePlayer extends Player {
         setTimePacket.time = this.level.getTime();
         this.dataPacket(setTimePacket);
 
-        this.setMovementSpeed(DEFAULT_SPEED);
-        this.sendAttributes();
         this.setNameTagVisible(true);
         this.setNameTagAlwaysVisible(true);
         this.setCanClimb(true);
@@ -302,6 +300,13 @@ public class SynapsePlayer extends Player {
         this.dataPacket(chunkRadiusUpdatePacket);
     }
 
+    @Override
+    protected void doFirstSpawn() {
+        super.doFirstSpawn();
+        this.setMovementSpeed(DEFAULT_SPEED);
+        this.sendAttributes();
+    }
+
     /**
      *
      * Returns a client-friendly gamemode of the specified real gamemode
@@ -321,18 +326,24 @@ public class SynapsePlayer extends Player {
     protected void forceSendEmptyChunks() {
         int chunkPositionX = this.getFloorX() >> 4;
         int chunkPositionZ = this.getFloorZ() >> 4;
+        List<FullChunkDataPacket> pkList = new ArrayList<>();
         for (int x = -3; x < 3; x++) {
             for (int z = -3; z < 3; z++) {
                 FullChunkDataPacket chunk = new FullChunkDataPacket();
                 chunk.chunkX = chunkPositionX + x;
                 chunk.chunkZ = chunkPositionZ + z;
                 chunk.data = new byte[0];
-                this.dataPacket(chunk);
+                pkList.add(chunk);
             }
         }
+        Server.getInstance().batchPackets(new Player[]{this}, pkList.stream().toArray(DataPacket[]::new));
     }
 
     public boolean transfer(String hash) {
+        return this.transfer(hash, true);
+    }
+
+    public boolean transfer(String hash, boolean loadScreen) {
         ClientData clients = this.getSynapseEntry().getClientData();
         if (clients.clientList.containsKey(hash)) {
             for (Entity entity : this.getLevel().getEntities()) {
@@ -340,13 +351,13 @@ public class SynapsePlayer extends Player {
                     entity.despawnFrom(this);
                 }
             }
-            if (SynapseAPI.getInstance().isUseLoadingScreen()) {
+            if (loadScreen && SynapseAPI.getInstance().isUseLoadingScreen()) {
                 //Load Screen
-                new SendChangeDimensionRunnable(this, 1).run();
+                this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 1), 1);
                 this.forceSendEmptyChunks();
-                this.getServer().getScheduler().scheduleDelayedTask(new SendPlayerSpawnRunnable(this), 8);
-                this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 0), 9);
-                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 10);
+                this.getServer().getScheduler().scheduleDelayedTask(new SendPlayerSpawnRunnable(this), 10);
+                this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 0), 12);
+                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 14);
             } else {
                 new TransferRunnable(this, hash).run();
             }
