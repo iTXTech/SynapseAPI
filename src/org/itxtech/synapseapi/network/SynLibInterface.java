@@ -6,6 +6,7 @@ import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.utils.Binary;
+import cn.nukkit.utils.Zlib;
 import org.itxtech.synapseapi.SynapseAPI;
 import org.itxtech.synapseapi.network.protocol.spp.RedirectPacket;
 
@@ -47,11 +48,26 @@ public class SynLibInterface implements SourceInterface {
     @Override
     public Integer putPacket(Player player, DataPacket packet, boolean needACK, boolean immediate) {
         if(!player.closed) {
-            packet.encode();
             RedirectPacket pk = new RedirectPacket();
             pk.uuid = player.getUniqueId();
             pk.direct = immediate;
-            pk.mcpeBuffer = packet instanceof BatchPacket ? Binary.appendBytes((byte) 0xfe, ((BatchPacket) packet).payload) : packet.getBuffer();
+            if (!packet.isEncoded) {
+                packet.encode();
+                packet.isEncoded = true;
+            }
+            if (!(packet instanceof BatchPacket) && SynapseAPI.getInstance().isAutoCompress()) {
+                byte[] buffer = packet.getBuffer();
+                try {
+                    buffer = Zlib.deflate(
+                            Binary.appendBytes(Binary.writeUnsignedVarInt(buffer.length), buffer),
+                            Server.getInstance().networkCompressionLevel);
+                    pk.mcpeBuffer = Binary.appendBytes((byte) 0xfe, buffer);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                pk.mcpeBuffer = packet instanceof BatchPacket ? Binary.appendBytes((byte) 0xfe, ((BatchPacket) packet).payload) : packet.getBuffer();
+            }
             this.synapseInterface.putPacket(pk);
         }
         return 0;  //这个返回值在nk中并没有被用到

@@ -25,6 +25,7 @@ public class SynapseAPI extends PluginBase {
     public static boolean enable = true;
     private boolean autoConnect = true;
     private boolean loadingScreen = true;
+    private boolean autoCompress = true;  //Compress in Nukkit, not Nemisys
 
     public boolean isAutoConnect() {
         return autoConnect;
@@ -54,6 +55,7 @@ public class SynapseAPI extends PluginBase {
         String password = this.getConfig().getString("password");
         String serverDescription = this.getConfig().getString("description");
         this.loadingScreen = this.getConfig().getBoolean("loadingScreen", true);
+        this.autoCompress = this.getConfig().getBoolean("autoCompress", true);
 
         for(SourceInterface interfaz : this.getServer().getNetwork().getInterfaces()){
             if(interfaz instanceof RakNetInterface){
@@ -80,6 +82,10 @@ public class SynapseAPI extends PluginBase {
 
     public boolean isUseLoadingScreen() {
         return loadingScreen;
+    }
+
+    public boolean isAutoCompress() {
+        return autoCompress;
     }
 
     public Map<String, SynapseEntry> getSynapseEntries() {
