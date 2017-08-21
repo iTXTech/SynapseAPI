@@ -25,7 +25,7 @@ public class SendChangeDimensionRunnable implements Runnable {
         ChangeDimensionPacket changeDimensionPacket1 = new ChangeDimensionPacket();
         changeDimensionPacket1.dimension = this.dimension;
         changeDimensionPacket1.x = (float) player.getX();
-        changeDimensionPacket1.y = (float) player.getY();
+        changeDimensionPacket1.y = (float) player.getY() + player.getEyeHeight();
         changeDimensionPacket1.z = (float) player.getZ();
         player.dataPacket(changeDimensionPacket1);
     }
