@@ -1,10 +1,6 @@
 package org.itxtech.synapseapi.runnable;
 
-import cn.nukkit.Player;
-import cn.nukkit.Server;
 import cn.nukkit.network.protocol.ChangeDimensionPacket;
-import cn.nukkit.network.protocol.DataPacket;
-import cn.nukkit.network.protocol.PlayStatusPacket;
 import org.itxtech.synapseapi.SynapsePlayer;
 
 /**

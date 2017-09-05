@@ -4,8 +4,10 @@ import cn.nukkit.Nukkit;
 import cn.nukkit.Server;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.DataPacket;
+import cn.nukkit.plugin.Plugin;
 import com.google.gson.Gson;
 import org.itxtech.synapseapi.event.player.SynapsePlayerCreationEvent;
+import org.itxtech.synapseapi.messaging.StandardMessenger;
 import org.itxtech.synapseapi.network.SynLibInterface;
 import org.itxtech.synapseapi.network.SynapseInterface;
 import org.itxtech.synapseapi.network.protocol.spp.*;
@@ -36,10 +38,6 @@ public class SynapseEntry {
     private ClientData clientData;
     private String serverDescription;
 
-    public SynapseAPI getSynapse() {
-        return this.synapse;
-    }
-
     public SynapseEntry(SynapseAPI synapse, String serverIp, int port, boolean isMainServer, String password, String serverDescription) {
         this.synapse = synapse;
         this.serverIp = serverIp;
@@ -61,6 +59,21 @@ public class SynapseEntry {
         this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(new Ticker(), 1);
     }
 
+    public static String getRandomString(int length) { //length表示生成字符串的长度
+        String base = "abcdefghijklmnopqrstuvwxyz0123456789";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            int number = random.nextInt(base.length());
+            sb.append(base.charAt(number));
+        }
+        return sb.toString();
+    }
+
+    public SynapseAPI getSynapse() {
+        return this.synapse;
+    }
+
     public boolean isEnable() {
         return enable;
     }
@@ -73,8 +86,8 @@ public class SynapseEntry {
         return synapseInterface;
     }
 
-    public void shutdown(){
-        if(this.verified){
+    public void shutdown() {
+        if (this.verified) {
             DisconnectPacket pk = new DisconnectPacket();
             pk.type = DisconnectPacket.TYPE_GENERIC;
             pk.message = "Server closed";
@@ -97,20 +110,8 @@ public class SynapseEntry {
         this.serverDescription = serverDescription;
     }
 
-    public void sendDataPacket(SynapseDataPacket pk){
+    public void sendDataPacket(SynapseDataPacket pk) {
         this.synapseInterface.putPacket(pk);
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public void setServerIp(String serverIp) {
-        this.serverIp = serverIp;
-    }
-
-    public void setMainServer(boolean mainServer) {
-        isMainServer = mainServer;
     }
 
     public void setPassword(String password) {
@@ -121,21 +122,29 @@ public class SynapseEntry {
         return serverIp;
     }
 
+    public void setServerIp(String serverIp) {
+        this.serverIp = serverIp;
+    }
+
     public int getPort() {
         return port;
     }
 
-    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet){
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet) {
         this.broadcastPacket(players, packet, false);
     }
 
-    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet, boolean direct){
+    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet, boolean direct) {
         packet.encode();
         BroadcastPacket broadcastPacket = new BroadcastPacket();
         broadcastPacket.direct = direct;
         broadcastPacket.payload = packet.getBuffer();
         broadcastPacket.entries = new ArrayList<>();
-        for (SynapsePlayer player : players){
+        for (SynapsePlayer player : players) {
             broadcastPacket.entries.add(player.getUniqueId());
         }
         this.sendDataPacket(broadcastPacket);
@@ -145,11 +154,15 @@ public class SynapseEntry {
         return isMainServer;
     }
 
+    public void setMainServer(boolean mainServer) {
+        isMainServer = mainServer;
+    }
+
     public String getHash() {
         return this.serverIp + ":" + this.port;
     }
 
-    public void connect(){
+    public void connect() {
         this.getSynapse().getLogger().notice("Connecting " + this.getHash());
         this.verified = false;
         ConnectPacket pk = new ConnectPacket();
@@ -166,18 +179,11 @@ public class SynapseEntry {
         */
     }
 
-    public class Ticker implements Runnable {
-        @Override
-        public void run() {
-            tick();
-        }
-    }
-
-    public void tick(){
+    public void tick() {
         this.synapseInterface.process();
         if (!this.getSynapseInterface().isConnected()) return;
         long time = System.currentTimeMillis();
-        if((time - this.lastUpdate) >= 5000){//Heartbeat!
+        if ((time - this.lastUpdate) >= 5000) {//Heartbeat!
             this.lastUpdate = time;
             HeartbeatPacket pk = new HeartbeatPacket();
             pk.tps = this.getSynapse().getServer().getTicksPerSecondAverage();
@@ -198,42 +204,31 @@ public class SynapseEntry {
         long finalTime = System.currentTimeMillis();
         long usedTime = finalTime - time;
         //this.getSynapse().getServer().getLogger().warning(time + " -> tick 用时 " + usedTime + " 毫秒");
-        if(((finalTime - this.lastUpdate) >= 30000) && this.synapseInterface.isConnected()){  //30 seconds timeout
+        if (((finalTime - this.lastUpdate) >= 30000) && this.synapseInterface.isConnected()) {  //30 seconds timeout
             this.synapseInterface.reconnect();
         }
     }
 
-    public static String getRandomString(int length) { //length表示生成字符串的长度
-        String base = "abcdefghijklmnopqrstuvwxyz0123456789";
-        Random random = new Random();
-        StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < length; i++) {
-            int number = random.nextInt(base.length());
-            sb.append(base.charAt(number));
-        }
-        return sb.toString();
-    }
-
-    public void removePlayer(SynapsePlayer player){
+    public void removePlayer(SynapsePlayer player) {
         UUID uuid = player.getUniqueId();
-        if(this.players.containsKey(uuid)){
+        if (this.players.containsKey(uuid)) {
             this.players.remove(uuid);
         }
     }
 
-    public void removePlayer(UUID uuid){
-        if(this.players.containsKey(uuid)){
+    public void removePlayer(UUID uuid) {
+        if (this.players.containsKey(uuid)) {
             this.players.remove(uuid);
         }
     }
 
-    public void handleDataPacket(SynapseDataPacket pk){
+    public void handleDataPacket(SynapseDataPacket pk) {
         //this.getSynapse().getLogger().warning("Received packet " + pk.pid() + "(" + pk.getClass().getSimpleName() + ") from " + this.serverIp + ":" + this.port);
-        switch(pk.pid()){
+        switch (pk.pid()) {
             case SynapseInfo.DISCONNECT_PACKET:
                 DisconnectPacket disconnectPacket = (DisconnectPacket) pk;
                 this.verified = false;
-                switch(disconnectPacket.type){
+                switch (disconnectPacket.type) {
                     case DisconnectPacket.TYPE_GENERIC:
                         this.getSynapse().getLogger().notice("Synapse Client has disconnected due to " + disconnectPacket.message);
                         this.synapseInterface.reconnect();
@@ -244,13 +239,13 @@ public class SynapseEntry {
                 }
                 break;
             case SynapseInfo.INFORMATION_PACKET:
-                InformationPacket informationPacket = (InformationPacket)pk;
-                switch(informationPacket.type){
+                InformationPacket informationPacket = (InformationPacket) pk;
+                switch (informationPacket.type) {
                     case InformationPacket.TYPE_LOGIN:
-                        if (informationPacket.message.equals(InformationPacket.INFO_LOGIN_SUCCESS)){
+                        if (informationPacket.message.equals(InformationPacket.INFO_LOGIN_SUCCESS)) {
                             this.getSynapse().getLogger().notice("Login success to " + this.serverIp + ":" + this.port);
                             this.verified = true;
-                        } else if(informationPacket.message.equals(InformationPacket.INFO_LOGIN_FAILED)){
+                        } else if (informationPacket.message.equals(InformationPacket.INFO_LOGIN_FAILED)) {
                             this.getSynapse().getLogger().notice("Login failed to " + this.serverIp + ":" + this.port);
                         }
                         break;
@@ -262,7 +257,7 @@ public class SynapseEntry {
                 }
                 break;
             case SynapseInfo.PLAYER_LOGIN_PACKET:
-                PlayerLoginPacket playerLoginPacket = (PlayerLoginPacket)pk;
+                PlayerLoginPacket playerLoginPacket = (PlayerLoginPacket) pk;
                 SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer.class, SynapsePlayer.class, new Random().nextLong(), playerLoginPacket.address, playerLoginPacket.port);
                 this.getSynapse().getServer().getPluginManager().callEvent(ev);
                 Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
@@ -278,11 +273,11 @@ public class SynapseEntry {
                 }
                 break;
             case SynapseInfo.REDIRECT_PACKET:
-                RedirectPacket redirectPacket = (RedirectPacket)pk;
+                RedirectPacket redirectPacket = (RedirectPacket) pk;
                 UUID uuid = redirectPacket.uuid;
-                if(this.players.containsKey(uuid)){
+                if (this.players.containsKey(uuid)) {
                     DataPacket pk0 = this.getSynapse().getPacket(redirectPacket.mcpeBuffer);
-                    if(pk0 != null) {
+                    if (pk0 != null) {
                         pk0.decode();
                         this.players.get(uuid).handleDataPacket(pk0);
                     }
@@ -291,13 +286,33 @@ public class SynapseEntry {
             case SynapseInfo.PLAYER_LOGOUT_PACKET:
                 PlayerLogoutPacket playerLogoutPacket = (PlayerLogoutPacket) pk;
                 UUID uuid1;
-                if(this.players.containsKey(uuid1 = playerLogoutPacket.uuid)){
+                if (this.players.containsKey(uuid1 = playerLogoutPacket.uuid)) {
                     this.players.get(uuid1).close(playerLogoutPacket.reason, playerLogoutPacket.reason, true);
                     this.removePlayer(uuid1);
                 }
                 break;
+            case SynapseInfo.PLUGIN_MESSAGE_PACKET:
+                PluginMessagePacket messagePacket = (PluginMessagePacket) pk;
+
+                this.synapse.getMessenger().dispatchIncomingMessage(messagePacket.channel, messagePacket.data);
+                break;
         }
     }
 
+    public void sendPluginMessage(Plugin plugin, String channel, byte[] message) {
+        StandardMessenger.validatePluginMessage(this.synapse.getMessenger(), plugin, channel, message);
 
+        PluginMessagePacket pk = new PluginMessagePacket();
+        pk.channel = channel;
+        pk.data = message;
+
+        this.sendDataPacket(pk);
+    }
+
+    public class Ticker implements Runnable {
+        @Override
+        public void run() {
+            tick();
+        }
+    }
 }
