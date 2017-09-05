@@ -9,6 +9,7 @@ import cn.nukkit.utils.Binary;
 import cn.nukkit.utils.Zlib;
 import org.itxtech.synapseapi.SynapseAPI;
 import org.itxtech.synapseapi.network.protocol.spp.RedirectPacket;
+import org.itxtech.synapseapi.runnable.SynapseEntryPutPacketThread;
 
 /**
  * Created by boybook on 16/6/24.
@@ -47,29 +48,7 @@ public class SynLibInterface implements SourceInterface {
 
     @Override
     public Integer putPacket(Player player, DataPacket packet, boolean needACK, boolean immediate) {
-        if (!player.closed) {
-            RedirectPacket pk = new RedirectPacket();
-            pk.uuid = player.getUniqueId();
-            pk.direct = immediate;
-            if (!packet.isEncoded) {
-                packet.encode();
-                packet.isEncoded = true;
-            }
-            if (!(packet instanceof BatchPacket) && SynapseAPI.getInstance().isAutoCompress()) {
-                byte[] buffer = packet.getBuffer();
-                try {
-                    buffer = Zlib.deflate(
-                            Binary.appendBytes(Binary.writeUnsignedVarInt(buffer.length), buffer),
-                            Server.getInstance().networkCompressionLevel);
-                    pk.mcpeBuffer = Binary.appendBytes((byte) 0xfe, buffer);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                pk.mcpeBuffer = packet instanceof BatchPacket ? Binary.appendBytes((byte) 0xfe, ((BatchPacket) packet).payload) : packet.getBuffer();
-            }
-            this.synapseInterface.putPacket(pk);
-        }
+        this.synapseInterface.getPutPacketThread().addMainToThread(player, packet, needACK, immediate);
         return 0;  //这个返回值在nk中并没有被用到
     }
 

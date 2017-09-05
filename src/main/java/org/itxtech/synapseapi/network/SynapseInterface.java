@@ -4,6 +4,7 @@ import cn.nukkit.Server;
 import org.itxtech.synapseapi.SynapseEntry;
 import org.itxtech.synapseapi.network.protocol.spp.*;
 import org.itxtech.synapseapi.network.synlib.SynapseClient;
+import org.itxtech.synapseapi.runnable.SynapseEntryPutPacketThread;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,45 +14,37 @@ import java.util.Map;
  */
 public class SynapseInterface {
 
-    private static Map<Byte, SynapseDataPacket> packetPool = new HashMap<>();
     private SynapseEntry synapse;
     private SynapseClient client;
+    private static Map<Byte, SynapseDataPacket> packetPool = new HashMap<>();
     private boolean connected = false;
+    private SynapseEntryPutPacketThread putPacketThread;
 
-    public SynapseInterface(SynapseEntry server, String ip, int port) {
+    public SynapseInterface(SynapseEntry server, String ip, int port){
         this.synapse = server;
         this.registerPackets();
         this.client = new SynapseClient(Server.getInstance().getLogger(), port, ip);
-    }
-
-    public static SynapseDataPacket getPacket(byte pid, byte[] buffer) {
-        SynapseDataPacket clazz = packetPool.get(pid);
-        if (clazz != null) {
-            SynapseDataPacket pk = clazz.clone();
-            pk.setBuffer(buffer, 0);
-            return pk;
-        }
-        return null;
-    }
-
-    public static void registerPacket(byte id, SynapseDataPacket packet) {
-        packetPool.put(id, packet);
+        this.putPacketThread = new SynapseEntryPutPacketThread(this);
     }
 
     public SynapseEntry getSynapse() {
         return synapse;
     }
 
-    public void reconnect() {
+    public void reconnect(){
         this.client.reconnect();
     }
 
-    public void shutdown() {
+    public void shutdown(){
         this.client.shutdown();
     }
 
-    public void putPacket(SynapseDataPacket pk) {
-        if (!pk.isEncoded) {
+    public SynapseEntryPutPacketThread getPutPacketThread() {
+        return putPacketThread;
+    }
+
+    public void putPacket(SynapseDataPacket pk){
+        if(!pk.isEncoded){
             pk.encode();
         }
         this.client.pushMainToThreadPacket(pk);
@@ -61,7 +54,7 @@ public class SynapseInterface {
         return connected;
     }
 
-    public void process() {
+    public void process(){
         SynapseDataPacket pk = this.client.readThreadToMainPacket();
 
         while (pk != null) {
@@ -76,11 +69,25 @@ public class SynapseInterface {
         }
     }
 
-    public void handlePacket(SynapseDataPacket pk) {
+    public static SynapseDataPacket getPacket(byte pid, byte[] buffer) {
+        SynapseDataPacket clazz = packetPool.get(pid);
+        if (clazz != null) {
+            SynapseDataPacket pk = clazz.clone();
+            pk.setBuffer(buffer, 0);
+            return pk;
+        }
+        return null;
+    }
+
+    public void handlePacket(SynapseDataPacket pk){
         if (pk != null) {
             pk.decode();
             this.synapse.handleDataPacket(pk);
         }
+    }
+    
+    public static void registerPacket(byte id, SynapseDataPacket packet) {
+        packetPool.put(id, packet);
     }
 
     private void registerPackets() {
@@ -95,6 +102,5 @@ public class SynapseInterface {
         registerPacket(SynapseInfo.TRANSFER_PACKET, new TransferPacket());
         registerPacket(SynapseInfo.BROADCAST_PACKET, new BroadcastPacket());
         registerPacket(SynapseInfo.FAST_PLAYER_LIST_PACKET, new FastPlayerListPacket());
-        registerPacket(SynapseInfo.PLUGIN_MESSAGE_PACKET, new PluginMessagePacket());
     }
 }

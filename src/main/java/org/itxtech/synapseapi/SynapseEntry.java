@@ -5,6 +5,8 @@ import cn.nukkit.Server;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.plugin.Plugin;
+import co.aikar.timings.Timing;
+import co.aikar.timings.TimingsManager;
 import com.google.gson.Gson;
 import org.itxtech.synapseapi.event.player.SynapsePlayerCreationEvent;
 import org.itxtech.synapseapi.messaging.StandardMessenger;
@@ -56,7 +58,7 @@ public class SynapseEntry {
         this.synLibInterface = new SynLibInterface(this.synapseInterface);
         this.lastUpdate = System.currentTimeMillis();
         this.lastRecvInfo = System.currentTimeMillis();
-        this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(new Ticker(), 1);
+        this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(SynapseAPI.getInstance(), new Ticker(), 1);
     }
 
     public static String getRandomString(int length) { //length表示生成字符串的长度
@@ -172,11 +174,34 @@ public class SynapseEntry {
         pk.maxPlayers = this.getSynapse().getServer().getMaxPlayers();
         pk.protocol = SynapseInfo.CURRENT_PROTOCOL;
         this.sendDataPacket(pk);
-        /*
-        Thread ticker = new Thread(new Ticker());
-        ticker.setName("SynapseAPI Ticker");
+
+        Thread ticker = new Thread(new AsyncTicker());
+        ticker.setName("SynapseAPI Async Ticker");
         ticker.start();
-        */
+    }
+
+    public class AsyncTicker implements Runnable {
+        @Override
+        public void run() {
+            long startTime = System.currentTimeMillis();
+            while (Server.getInstance().isRunning()) {
+                tick();
+                long duration = System.currentTimeMillis() - startTime;
+                if (duration < 50) {
+                    try{
+                        Thread.sleep(50 - duration);
+                    } catch (InterruptedException e) {}
+                }
+                startTime = System.currentTimeMillis();
+            }
+        }
+    }
+
+    public class Ticker implements Runnable {
+        @Override
+        public void run() {
+            synapseInterface.process();
+        }
     }
 
     public void tick() {
@@ -222,7 +247,11 @@ public class SynapseEntry {
         }
     }
 
-    public void handleDataPacket(SynapseDataPacket pk) {
+    private final Timing handleDataPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleDataPacket");
+    private final Timing handleRedirectPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleRedirectPacket");
+
+    public void handleDataPacket(SynapseDataPacket pk){
+        this.handleDataPacketTiming.startTiming();
         //this.getSynapse().getLogger().warning("Received packet " + pk.pid() + "(" + pk.getClass().getSimpleName() + ") from " + this.serverIp + ":" + this.port);
         switch (pk.pid()) {
             case SynapseInfo.DISCONNECT_PACKET:
@@ -277,9 +306,11 @@ public class SynapseEntry {
                 UUID uuid = redirectPacket.uuid;
                 if (this.players.containsKey(uuid)) {
                     DataPacket pk0 = this.getSynapse().getPacket(redirectPacket.mcpeBuffer);
-                    if (pk0 != null) {
+                    if(pk0 != null) {
+                        this.handleRedirectPacketTiming.startTiming();
                         pk0.decode();
                         this.players.get(uuid).handleDataPacket(pk0);
+                        this.handleRedirectPacketTiming.stopTiming();
                     }
                 }
                 break;
@@ -297,6 +328,7 @@ public class SynapseEntry {
                 this.synapse.getMessenger().dispatchIncomingMessage(messagePacket.channel, messagePacket.data);
                 break;
         }
+        this.handleDataPacketTiming.stopTiming();
     }
 
     public void sendPluginMessage(Plugin plugin, String channel, byte[] message) {
