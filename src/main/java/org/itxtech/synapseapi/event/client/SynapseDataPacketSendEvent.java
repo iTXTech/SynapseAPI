@@ -14,6 +14,7 @@ public class SynapseDataPacketSendEvent extends SynapseEvent implements Cancella
     private static final HandlerList handlers = new HandlerList();
     private final SynapseDataPacket packet;
     private final SynapseEntry entry;
+
     public SynapseDataPacketSendEvent(SynapseEntry entry, SynapseDataPacket packet) {
         this.packet = packet;
         this.entry = entry;

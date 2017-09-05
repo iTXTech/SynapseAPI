@@ -39,10 +39,10 @@ import java.util.*;
  */
 public class SynapsePlayer extends Player {
 
+    private static final Map<Byte, Timing> handlePlayerDataPacketTimings = new HashMap<>();
     public boolean isSynapseLogin = false;
     protected SynapseEntry synapseEntry;
     private boolean isFirstTimeLogin = false;
-
     private long synapseSlowLoginUntil = 0;
 
     public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, String ip, int port) {
@@ -384,8 +384,6 @@ public class SynapsePlayer extends Player {
         return false;
     }
 
-    private static final Map<Byte, Timing> handlePlayerDataPacketTimings = new HashMap<>();
-
     @Override
     public void handleDataPacket(DataPacket packet) {
         if (!this.isSynapseLogin) {
@@ -398,7 +396,8 @@ public class SynapsePlayer extends Player {
         super.handleDataPacket(packet);
 
         dataPacketTiming.stopTiming();
-        if (!handlePlayerDataPacketTimings.containsKey(packet.pid())) handlePlayerDataPacketTimings.put(packet.pid(), dataPacketTiming);
+        if (!handlePlayerDataPacketTimings.containsKey(packet.pid()))
+            handlePlayerDataPacketTimings.put(packet.pid(), dataPacketTiming);
 
     }
 

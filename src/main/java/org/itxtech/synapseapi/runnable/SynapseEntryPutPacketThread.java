@@ -87,7 +87,7 @@ public class SynapseEntryPutPacketThread extends Thread {
                 }
             }
             tickUseTime = System.currentTimeMillis() - start;
-            if (tickUseTime < 10){
+            if (tickUseTime < 10) {
                 try {
                     Thread.sleep(10 - tickUseTime);
                 } catch (InterruptedException e) {
@@ -98,7 +98,7 @@ public class SynapseEntryPutPacketThread extends Thread {
     }
 
     private byte[] deflate(byte[] data, int level) throws Exception {
-        if (deflater == null) throw new IllegalArgumentException("No deflate for level "+level+" !");
+        if (deflater == null) throw new IllegalArgumentException("No deflate for level " + level + " !");
         deflater.reset();
         deflater.setInput(data);
         deflater.finish();
@@ -111,23 +111,24 @@ public class SynapseEntryPutPacketThread extends Thread {
         return bos.toByteArray();
     }
 
+    public float getTicksPerSecond() {
+        long more = this.tickUseTime - 10;
+        if (more < 0) return 100;
+        return Math.round(10f / (float) this.tickUseTime) * 100;
+    }
+
     private class Entry {
         private Player player;
         private DataPacket packet;
         private boolean needACK;
         private boolean immediate;
+
         public Entry(Player player, DataPacket packet, boolean needACK, boolean immediate) {
             this.player = player;
             this.packet = packet;
             this.needACK = needACK;
             this.immediate = immediate;
         }
-    }
-
-    public float getTicksPerSecond() {
-        long more = this.tickUseTime - 10;
-        if (more < 0) return 100;
-        return Math.round(10f / (float)this.tickUseTime) * 100;
     }
 
 }

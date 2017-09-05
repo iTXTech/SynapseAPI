@@ -24,8 +24,9 @@ import java.util.*;
  */
 public class SynapseEntry {
 
+    private final Timing handleDataPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleDataPacket");
+    private final Timing handleRedirectPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleRedirectPacket");
     private SynapseAPI synapse;
-
     private boolean enable;
     private String serverIp;
     private int port;
@@ -180,30 +181,6 @@ public class SynapseEntry {
         ticker.start();
     }
 
-    public class AsyncTicker implements Runnable {
-        @Override
-        public void run() {
-            long startTime = System.currentTimeMillis();
-            while (Server.getInstance().isRunning()) {
-                tick();
-                long duration = System.currentTimeMillis() - startTime;
-                if (duration < 50) {
-                    try{
-                        Thread.sleep(50 - duration);
-                    } catch (InterruptedException e) {}
-                }
-                startTime = System.currentTimeMillis();
-            }
-        }
-    }
-
-    public class Ticker implements Runnable {
-        @Override
-        public void run() {
-            synapseInterface.process();
-        }
-    }
-
     public void tick() {
         this.synapseInterface.process();
         if (!this.getSynapseInterface().isConnected()) return;
@@ -247,10 +224,7 @@ public class SynapseEntry {
         }
     }
 
-    private final Timing handleDataPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleDataPacket");
-    private final Timing handleRedirectPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleRedirectPacket");
-
-    public void handleDataPacket(SynapseDataPacket pk){
+    public void handleDataPacket(SynapseDataPacket pk) {
         this.handleDataPacketTiming.startTiming();
         //this.getSynapse().getLogger().warning("Received packet " + pk.pid() + "(" + pk.getClass().getSimpleName() + ") from " + this.serverIp + ":" + this.port);
         switch (pk.pid()) {
@@ -306,7 +280,7 @@ public class SynapseEntry {
                 UUID uuid = redirectPacket.uuid;
                 if (this.players.containsKey(uuid)) {
                     DataPacket pk0 = this.getSynapse().getPacket(redirectPacket.mcpeBuffer);
-                    if(pk0 != null) {
+                    if (pk0 != null) {
                         this.handleRedirectPacketTiming.startTiming();
                         pk0.decode();
                         this.players.get(uuid).handleDataPacket(pk0);
@@ -341,10 +315,28 @@ public class SynapseEntry {
         this.sendDataPacket(pk);
     }
 
+    public class AsyncTicker implements Runnable {
+        @Override
+        public void run() {
+            long startTime = System.currentTimeMillis();
+            while (Server.getInstance().isRunning()) {
+                tick();
+                long duration = System.currentTimeMillis() - startTime;
+                if (duration < 50) {
+                    try {
+                        Thread.sleep(50 - duration);
+                    } catch (InterruptedException e) {
+                    }
+                }
+                startTime = System.currentTimeMillis();
+            }
+        }
+    }
+
     public class Ticker implements Runnable {
         @Override
         public void run() {
-            tick();
+            synapseInterface.process();
         }
     }
 }
