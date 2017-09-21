@@ -2,6 +2,7 @@ package org.itxtech.synapseapi.runnable;
 
 import cn.nukkit.Player;
 import cn.nukkit.Server;
+import cn.nukkit.math.NukkitMath;
 import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.utils.Binary;
@@ -75,6 +76,7 @@ public class SynapseEntryPutPacketThread extends Thread {
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
+                            //Server.getInstance().getLogger().notice("S => C  " + entry.packet.getClass().getSimpleName());
                         } else {
                             pk.mcpeBuffer = entry.packet instanceof BatchPacket ? Binary.appendBytes((byte) 0xfe, ((BatchPacket) entry.packet).payload) : entry.packet.getBuffer();
                         }
@@ -124,10 +126,10 @@ public class SynapseEntryPutPacketThread extends Thread {
         }
     }
 
-    public float getTicksPerSecond() {
+    public double getTicksPerSecond() {
         long more = this.tickUseTime - 10;
         if (more < 0) return 100;
-        return Math.round(10f / (float)this.tickUseTime) * 100;
+        return NukkitMath.round(10f / (double)this.tickUseTime, 3) * 100;
     }
 
 }
