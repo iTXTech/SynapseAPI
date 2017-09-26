@@ -299,7 +299,7 @@ public class SynapseEntry {
             case SynapseInfo.PLUGIN_MESSAGE_PACKET:
                 PluginMessagePacket messagePacket = (PluginMessagePacket) pk;
 
-                this.synapse.getMessenger().dispatchIncomingMessage(messagePacket.channel, messagePacket.data);
+                this.synapse.getMessenger().dispatchIncomingMessage(this, messagePacket.channel, messagePacket.data);
                 break;
         }
         this.handleDataPacketTiming.stopTiming();

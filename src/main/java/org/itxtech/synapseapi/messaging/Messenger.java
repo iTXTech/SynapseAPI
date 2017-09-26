@@ -1,6 +1,7 @@
 package org.itxtech.synapseapi.messaging;
 
 import cn.nukkit.plugin.Plugin;
+import org.itxtech.synapseapi.SynapseEntry;
 
 import java.util.Set;
 
@@ -47,5 +48,5 @@ public interface Messenger {
 
     boolean isOutgoingChannelRegistered(Plugin plugin, String channel);
 
-    void dispatchIncomingMessage(String channel, byte[] message);
+    void dispatchIncomingMessage(SynapseEntry entry, String channel, byte[] message);
 }

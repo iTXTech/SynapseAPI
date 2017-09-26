@@ -3,6 +3,7 @@ package org.itxtech.synapseapi.messaging;
 import cn.nukkit.plugin.Plugin;
 import cn.nukkit.utils.MainLogger;
 import com.google.common.collect.ImmutableSet;
+import org.itxtech.synapseapi.SynapseEntry;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -404,7 +405,7 @@ public class StandardMessenger implements Messenger {
     }
 
     @Override
-    public void dispatchIncomingMessage(String channel, byte[] message) {
+    public void dispatchIncomingMessage(SynapseEntry entry, String channel, byte[] message) {
         if (message == null) {
             throw new IllegalArgumentException("Message cannot be null");
         }
@@ -412,7 +413,7 @@ public class StandardMessenger implements Messenger {
         Set<PluginMessageListenerRegistration> registrations = this.getIncomingChannelRegistrations(channel);
         for (PluginMessageListenerRegistration registration : registrations) {
             try {
-                registration.getListener().onPluginMessageReceived(channel, message);
+                registration.getListener().onPluginMessageReceived(entry, channel, message);
             } catch (Throwable t) {
                 MainLogger.getLogger().warning("Could not pass incoming plugin message to " + registration.getPlugin(), t);
             }
