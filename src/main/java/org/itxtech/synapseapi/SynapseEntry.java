@@ -2,18 +2,39 @@ package org.itxtech.synapseapi;
 
 import cn.nukkit.Nukkit;
 import cn.nukkit.Server;
+import cn.nukkit.math.NukkitMath;
 import cn.nukkit.network.SourceInterface;
+import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
+import cn.nukkit.network.protocol.ProtocolInfo;
+import cn.nukkit.utils.Binary;
+import cn.nukkit.utils.BinaryStream;
+import cn.nukkit.utils.Zlib;
+import co.aikar.timings.Timing;
+import co.aikar.timings.TimingsManager;
 import com.google.gson.Gson;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.codec.compression.JdkZlibDecoder;
+import io.netty.handler.codec.compression.ZlibCodecFactory;
+import io.netty.handler.codec.compression.ZlibDecoder;
+import io.netty.handler.codec.compression.ZlibWrapper;
 import org.itxtech.synapseapi.event.player.SynapsePlayerCreationEvent;
 import org.itxtech.synapseapi.network.SynLibInterface;
 import org.itxtech.synapseapi.network.SynapseInterface;
 import org.itxtech.synapseapi.network.protocol.spp.*;
 import org.itxtech.synapseapi.utils.ClientData;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 /**
  * Created by boybook on 16/8/21.
@@ -58,7 +79,7 @@ public class SynapseEntry {
         this.synLibInterface = new SynLibInterface(this.synapseInterface);
         this.lastUpdate = System.currentTimeMillis();
         this.lastRecvInfo = System.currentTimeMillis();
-        this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(new Ticker(), 1);
+        this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(SynapseAPI.getInstance(), new Ticker(this), 1);
     }
 
     public boolean isEnable() {
@@ -159,25 +180,85 @@ public class SynapseEntry {
         pk.maxPlayers = this.getSynapse().getServer().getMaxPlayers();
         pk.protocol = SynapseInfo.CURRENT_PROTOCOL;
         this.sendDataPacket(pk);
-        /*
-        Thread ticker = new Thread(new Ticker());
-        ticker.setName("SynapseAPI Ticker");
+
+        Thread ticker = new Thread(new AsyncTicker());
+        ticker.setName("SynapseAPI Async Ticker");
         ticker.start();
-        */
     }
 
-    public class Ticker implements Runnable {
+    public class AsyncTicker implements Runnable {
+        private long tickUseTime;
+        private long lastWarning = 0;
         @Override
         public void run() {
-            tick();
+            long startTime = System.currentTimeMillis();
+            while (Server.getInstance().isRunning()) {
+                threadTick();
+                tickUseTime = System.currentTimeMillis() - startTime;
+                if (tickUseTime < 10) {
+                    try{
+                        Thread.sleep(10 - tickUseTime);
+                    } catch (InterruptedException ignore) {}
+                } else if (System.currentTimeMillis() - lastWarning >= 5000) {
+                    Server.getInstance().getLogger().warning("SynapseEntry<" + getHash() + "> Async Thread is overloading! TPS: " + getTicksPerSecond() + " tickUseTime: " + tickUseTime);
+                    lastWarning = System.currentTimeMillis();
+                }
+                startTime = System.currentTimeMillis();
+            }
+        }
+        public double getTicksPerSecond() {
+            long more = this.tickUseTime - 10;
+            if (more < 0) return 100;
+            return NukkitMath.round(10f / (double)this.tickUseTime, 3) * 100;
         }
     }
 
-    public void tick(){
+    public class Ticker implements Runnable {
+        private SynapseEntry entry;
+        private Ticker(SynapseEntry entry) {
+            this.entry = entry;
+        }
+        @Override
+        public void run() {
+            PlayerLoginPacket playerLoginPacket;
+            while ((playerLoginPacket = playerLoginQueue.poll()) != null) {
+                SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(synLibInterface, SynapsePlayer.class, SynapsePlayer.class, new Random().nextLong(), playerLoginPacket.address, playerLoginPacket.port);
+                getSynapse().getServer().getPluginManager().callEvent(ev);
+                Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
+                try {
+                    Constructor constructor = clazz.getConstructor(SourceInterface.class, SynapseEntry.class, Long.class, String.class, int.class);
+                    SynapsePlayer player = (SynapsePlayer) constructor.newInstance(synLibInterface, this.entry, ev.getClientId(), ev.getAddress(), ev.getPort());
+                    player.setUniqueId(playerLoginPacket.uuid);
+                    players.put(playerLoginPacket.uuid, player);
+                    getSynapse().getServer().addPlayer(playerLoginPacket.uuid.toString(), player);
+                    player.handleLoginPacket(playerLoginPacket);
+                } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+                    Server.getInstance().getLogger().logException(e);
+                }
+            }
+
+            RedirectPacketEntry redirectPacketEntry;
+            while ((redirectPacketEntry = redirectPacketQueue.poll()) != null) {
+                //Server.getInstance().getLogger().warning("C => S  " + redirectPacketEntry.dataPacket.getClass().getSimpleName());
+                redirectPacketEntry.player.handleDataPacket(redirectPacketEntry.dataPacket);
+            }
+
+            PlayerLogoutPacket playerLogoutPacket;
+            while ((playerLogoutPacket = playerLogoutQueue.poll()) != null) {
+                UUID uuid1;
+                if(players.containsKey(uuid1 = playerLogoutPacket.uuid)){
+                    players.get(uuid1).close(playerLogoutPacket.reason, playerLogoutPacket.reason, true);
+                    removePlayer(uuid1);
+                }
+            }
+        }
+    }
+
+    public void threadTick(){
         this.synapseInterface.process();
         if (!this.getSynapseInterface().isConnected()) return;
         long time = System.currentTimeMillis();
-        if((time - this.lastUpdate) >= 5000){//Heartbeat!
+        if ((time - this.lastUpdate) >= 5000) {  //Heartbeat!
             this.lastUpdate = time;
             HeartbeatPacket pk = new HeartbeatPacket();
             pk.tps = this.getSynapse().getServer().getTicksPerSecondAverage();
@@ -186,7 +267,6 @@ public class SynapseEntry {
             this.sendDataPacket(pk);
             //this.getSynapse().getServer().getLogger().debug(time + " -> Sending Heartbeat Packet to " + this.getHash());
         }
-
         /*
         for (int i = 0; i < new Random().nextInt(10) + 1; i++) {
             InformationPacket test = new InformationPacket();
@@ -197,7 +277,7 @@ public class SynapseEntry {
 
         long finalTime = System.currentTimeMillis();
         long usedTime = finalTime - time;
-        //this.getSynapse().getServer().getLogger().warning(time + " -> tick 用时 " + usedTime + " 毫秒");
+        //this.getSynapse().getServer().getLogger().warning(time + " -> threadTick 用时 " + usedTime + " 毫秒");
         if(((finalTime - this.lastUpdate) >= 30000) && this.synapseInterface.isConnected()){  //30 seconds timeout
             this.synapseInterface.reconnect();
         }
@@ -227,7 +307,15 @@ public class SynapseEntry {
         }
     }
 
+    private final Queue<PlayerLoginPacket> playerLoginQueue = new LinkedBlockingQueue<>();
+    private final Queue<PlayerLogoutPacket> playerLogoutQueue = new LinkedBlockingQueue<>();
+    private final Queue<RedirectPacketEntry> redirectPacketQueue = new LinkedBlockingQueue<>();
+
+    private final Timing handleDataPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleDataPacket");
+    private final Timing handleRedirectPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleRedirectPacket");
+
     public void handleDataPacket(SynapseDataPacket pk){
+        //this.handleDataPacketTiming.startTiming();
         //this.getSynapse().getLogger().warning("Received packet " + pk.pid() + "(" + pk.getClass().getSimpleName() + ") from " + this.serverIp + ":" + this.port);
         switch(pk.pid()){
             case SynapseInfo.DISCONNECT_PACKET:
@@ -262,20 +350,7 @@ public class SynapseEntry {
                 }
                 break;
             case SynapseInfo.PLAYER_LOGIN_PACKET:
-                PlayerLoginPacket playerLoginPacket = (PlayerLoginPacket)pk;
-                SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer.class, SynapsePlayer.class, new Random().nextLong(), playerLoginPacket.address, playerLoginPacket.port);
-                this.getSynapse().getServer().getPluginManager().callEvent(ev);
-                Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
-                try {
-                    Constructor constructor = clazz.getConstructor(SourceInterface.class, SynapseEntry.class, Long.class, String.class, int.class);
-                    SynapsePlayer player = (SynapsePlayer) constructor.newInstance(this.synLibInterface, this, ev.getClientId(), ev.getAddress(), ev.getPort());
-                    player.setUniqueId(playerLoginPacket.uuid);
-                    this.players.put(playerLoginPacket.uuid, player);
-                    this.getSynapse().getServer().addPlayer(playerLoginPacket.uuid.toString(), player);
-                    player.handleLoginPacket(playerLoginPacket);
-                } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-                    Server.getInstance().getLogger().logException(e);
-                }
+                this.playerLoginQueue.offer((PlayerLoginPacket)pk);
                 break;
             case SynapseInfo.REDIRECT_PACKET:
                 RedirectPacket redirectPacket = (RedirectPacket)pk;
@@ -283,21 +358,70 @@ public class SynapseEntry {
                 if(this.players.containsKey(uuid)){
                     DataPacket pk0 = this.getSynapse().getPacket(redirectPacket.mcpeBuffer);
                     if(pk0 != null) {
+                        this.handleRedirectPacketTiming.startTiming();
                         pk0.decode();
-                        this.players.get(uuid).handleDataPacket(pk0);
+                        SynapsePlayer player = this.players.get(uuid);
+                        if (pk0.pid() == ProtocolInfo.BATCH_PACKET) {
+                            this.processBatch((BatchPacket) pk0).forEach(subPacket -> {
+                                this.redirectPacketQueue.offer(new RedirectPacketEntry(player, subPacket));
+                                //Server.getInstance().getLogger().info("C => S  " + subPacket.getClass().getSimpleName());
+                            });
+                        } else {
+                            this.redirectPacketQueue.offer(new RedirectPacketEntry(player, pk0));
+                        }
+                        this.handleRedirectPacketTiming.stopTiming();
                     }
                 }
                 break;
             case SynapseInfo.PLAYER_LOGOUT_PACKET:
-                PlayerLogoutPacket playerLogoutPacket = (PlayerLogoutPacket) pk;
-                UUID uuid1;
-                if(this.players.containsKey(uuid1 = playerLogoutPacket.uuid)){
-                    this.players.get(uuid1).close(playerLogoutPacket.reason, playerLogoutPacket.reason, true);
-                    this.removePlayer(uuid1);
-                }
+                this.playerLogoutQueue.offer((PlayerLogoutPacket)pk);
                 break;
+        }
+        //this.handleDataPacketTiming.stopTiming();
+    }
+
+    private class RedirectPacketEntry {
+        private SynapsePlayer player;
+        private DataPacket dataPacket;
+        private RedirectPacketEntry(SynapsePlayer player, DataPacket dataPacket) {
+            this.player = player;
+            this.dataPacket = dataPacket;
         }
     }
 
+    private List<DataPacket> processBatch(BatchPacket packet) {
+        byte[] data;
+        try {
+            data = Zlib.inflate(packet.payload, 64 * 1024 * 1024);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+
+        int len = data.length;
+        BinaryStream stream = new BinaryStream(data);
+        try {
+            List<DataPacket> packets = new ArrayList<>();
+            while (stream.offset < len) {
+                byte[] buf = stream.getByteArray();
+
+                DataPacket pk;
+
+                if ((pk = Server.getInstance().getNetwork().getPacket(buf[0])) != null) {
+                    pk.setBuffer(buf, 1);
+
+                    pk.decode();
+
+                    packets.add(pk);
+                }
+            }
+            return packets;
+        } catch (Exception e) {
+            if (Nukkit.DEBUG > 0) {
+                Server.getInstance().getLogger().debug("BatchPacket 0x" + Binary.bytesToHexString(packet.payload));
+                Server.getInstance().getLogger().logException(e);
+            }
+        }
+        return new ArrayList<>();
+    }
 
 }

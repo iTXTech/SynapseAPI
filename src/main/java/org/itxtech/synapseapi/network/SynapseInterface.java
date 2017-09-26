@@ -4,6 +4,7 @@ import cn.nukkit.Server;
 import org.itxtech.synapseapi.SynapseEntry;
 import org.itxtech.synapseapi.network.protocol.spp.*;
 import org.itxtech.synapseapi.network.synlib.SynapseClient;
+import org.itxtech.synapseapi.runnable.SynapseEntryPutPacketThread;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,11 +18,13 @@ public class SynapseInterface {
     private SynapseClient client;
     private static Map<Byte, SynapseDataPacket> packetPool = new HashMap<>();
     private boolean connected = false;
+    private SynapseEntryPutPacketThread putPacketThread;
 
     public SynapseInterface(SynapseEntry server, String ip, int port){
         this.synapse = server;
         this.registerPackets();
         this.client = new SynapseClient(Server.getInstance().getLogger(), port, ip);
+        this.putPacketThread = new SynapseEntryPutPacketThread(this);
     }
 
     public SynapseEntry getSynapse() {
@@ -34,6 +37,10 @@ public class SynapseInterface {
 
     public void shutdown(){
         this.client.shutdown();
+    }
+
+    public SynapseEntryPutPacketThread getPutPacketThread() {
+        return putPacketThread;
     }
 
     public void putPacket(SynapseDataPacket pk){
