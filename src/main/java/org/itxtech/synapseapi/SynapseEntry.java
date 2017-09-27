@@ -39,12 +39,13 @@ import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
 /**
- * Created by boybook on 16/8/21.
+ * @author boybook
  */
 public class SynapseEntry {
 
     private final Timing handleDataPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleDataPacket");
     private final Timing handleRedirectPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleRedirectPacket");
+
     private SynapseAPI synapse;
     private boolean enable;
     private String serverIp;
@@ -314,9 +315,6 @@ public class SynapseEntry {
     private final Queue<PlayerLogoutPacket> playerLogoutQueue = new LinkedBlockingQueue<>();
     private final Queue<RedirectPacketEntry> redirectPacketQueue = new LinkedBlockingQueue<>();
 
-    private final Timing handleDataPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleDataPacket");
-    private final Timing handleRedirectPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleRedirectPacket");
-
     public void handleDataPacket(SynapseDataPacket pk) {
         this.handleDataPacketTiming.startTiming();
         //this.getSynapse().getLogger().warning("Received packet " + pk.pid() + "(" + pk.getClass().getSimpleName() + ") from " + this.serverIp + ":" + this.port);
@@ -431,6 +429,7 @@ public class SynapseEntry {
         }
         return new ArrayList<>();
     }
+
     public void sendPluginMessage(Plugin plugin, String channel, byte[] message) {
         StandardMessenger.validatePluginMessage(this.synapse.getMessenger(), plugin, channel, message);
 
@@ -439,30 +438,5 @@ public class SynapseEntry {
         pk.data = message;
 
         this.sendDataPacket(pk);
-    }
-
-    public class AsyncTicker implements Runnable {
-        @Override
-        public void run() {
-            long startTime = System.currentTimeMillis();
-            while (Server.getInstance().isRunning()) {
-                tick();
-                long duration = System.currentTimeMillis() - startTime;
-                if (duration < 50) {
-                    try {
-                        Thread.sleep(50 - duration);
-                    } catch (InterruptedException e) {
-                    }
-                }
-                startTime = System.currentTimeMillis();
-            }
-        }
-    }
-
-    public class Ticker implements Runnable {
-        @Override
-        public void run() {
-            synapseInterface.process();
-        }
     }
 }
