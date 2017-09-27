@@ -1,6 +1,5 @@
 package org.itxtech.synapseapi.runnable;
 
-import cn.nukkit.network.protocol.PlayStatusPacket;
 import org.itxtech.synapseapi.SynapsePlayer;
 import org.itxtech.synapseapi.network.protocol.spp.TransferPacket;
 

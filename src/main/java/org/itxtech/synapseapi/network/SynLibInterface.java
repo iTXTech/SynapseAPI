@@ -1,15 +1,8 @@
 package org.itxtech.synapseapi.network;
 
 import cn.nukkit.Player;
-import cn.nukkit.Server;
 import cn.nukkit.network.SourceInterface;
-import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
-import cn.nukkit.utils.Binary;
-import cn.nukkit.utils.Zlib;
-import org.itxtech.synapseapi.SynapseAPI;
-import org.itxtech.synapseapi.network.protocol.spp.RedirectPacket;
-import org.itxtech.synapseapi.runnable.SynapseEntryPutPacketThread;
 
 /**
  * Created by boybook on 16/6/24.

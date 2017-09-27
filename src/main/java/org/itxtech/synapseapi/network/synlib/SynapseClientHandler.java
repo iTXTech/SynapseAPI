@@ -27,7 +27,7 @@ public class SynapseClientHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(final ChannelHandlerContext ctx) {  //客户端启动时调用该方法
         Server.getInstance().getLogger().debug("client-ChannelActive");
         this.getSynapseClient().getSession().channel = ctx.channel();
-        InetSocketAddress address = (InetSocketAddress)ctx.channel().remoteAddress();
+        InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
         this.getSynapseClient().getSession().updateAddress(address);
         this.getSynapseClient().getSession().setConnected(true);
         this.getSynapseClient().setConnected(true);

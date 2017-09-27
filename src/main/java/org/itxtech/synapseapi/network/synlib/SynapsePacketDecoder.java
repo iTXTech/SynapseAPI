@@ -4,7 +4,6 @@ import cn.nukkit.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
-import org.itxtech.synapseapi.SynapseAPI;
 import org.itxtech.synapseapi.network.SynapseInterface;
 
 import java.util.List;
@@ -43,7 +42,7 @@ public class SynapsePacketDecoder extends ReplayingDecoder<SynapsePacketDecoder.
                 int bodyLength = checkBodyLength(header.bodyLength());
                 byte[] bytes = new byte[bodyLength];
                 in.readBytes(bytes);
-                out.add(SynapseInterface.getPacket((byte)header.pid(), bytes));
+                out.add(SynapseInterface.getPacket((byte) header.pid(), bytes));
                 break;
             default:
                 break;
@@ -61,7 +60,7 @@ public class SynapsePacketDecoder extends ReplayingDecoder<SynapsePacketDecoder.
     private void checkMagic(short magic) throws SynapseContextException {
         if (SynapseProtocolHeader.MAGIC != magic) {
             Server.getInstance().getLogger().error("Magic is not match");
-            throw new SynapseContextException("magic value is not equal "+ SynapseProtocolHeader.MAGIC);
+            throw new SynapseContextException("magic value is not equal " + SynapseProtocolHeader.MAGIC);
         }
     }
 

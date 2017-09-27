@@ -6,6 +6,7 @@ import cn.nukkit.math.NukkitMath;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
+import cn.nukkit.plugin.Plugin;
 import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.utils.Binary;
 import cn.nukkit.utils.BinaryStream;
@@ -21,6 +22,7 @@ import io.netty.handler.codec.compression.ZlibCodecFactory;
 import io.netty.handler.codec.compression.ZlibDecoder;
 import io.netty.handler.codec.compression.ZlibWrapper;
 import org.itxtech.synapseapi.event.player.SynapsePlayerCreationEvent;
+import org.itxtech.synapseapi.messaging.StandardMessenger;
 import org.itxtech.synapseapi.network.SynLibInterface;
 import org.itxtech.synapseapi.network.SynapseInterface;
 import org.itxtech.synapseapi.network.protocol.spp.*;
@@ -37,12 +39,14 @@ import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
 /**
- * Created by boybook on 16/8/21.
+ * @author boybook
  */
 public class SynapseEntry {
 
-    private SynapseAPI synapse;
+    private final Timing handleDataPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleDataPacket");
+    private final Timing handleRedirectPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleRedirectPacket");
 
+    private SynapseAPI synapse;
     private boolean enable;
     private String serverIp;
     private int port;
@@ -56,10 +60,6 @@ public class SynapseEntry {
     private SynLibInterface synLibInterface;
     private ClientData clientData;
     private String serverDescription;
-
-    public SynapseAPI getSynapse() {
-        return this.synapse;
-    }
 
     public SynapseEntry(SynapseAPI synapse, String serverIp, int port, boolean isMainServer, String password, String serverDescription) {
         this.synapse = synapse;
@@ -82,6 +82,21 @@ public class SynapseEntry {
         this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(SynapseAPI.getInstance(), new Ticker(this), 1);
     }
 
+    public static String getRandomString(int length) { //length表示生成字符串的长度
+        String base = "abcdefghijklmnopqrstuvwxyz0123456789";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            int number = random.nextInt(base.length());
+            sb.append(base.charAt(number));
+        }
+        return sb.toString();
+    }
+
+    public SynapseAPI getSynapse() {
+        return this.synapse;
+    }
+
     public boolean isEnable() {
         return enable;
     }
@@ -94,8 +109,8 @@ public class SynapseEntry {
         return synapseInterface;
     }
 
-    public void shutdown(){
-        if(this.verified){
+    public void shutdown() {
+        if (this.verified) {
             DisconnectPacket pk = new DisconnectPacket();
             pk.type = DisconnectPacket.TYPE_GENERIC;
             pk.message = "Server closed";
@@ -118,20 +133,8 @@ public class SynapseEntry {
         this.serverDescription = serverDescription;
     }
 
-    public void sendDataPacket(SynapseDataPacket pk){
+    public void sendDataPacket(SynapseDataPacket pk) {
         this.synapseInterface.putPacket(pk);
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public void setServerIp(String serverIp) {
-        this.serverIp = serverIp;
-    }
-
-    public void setMainServer(boolean mainServer) {
-        isMainServer = mainServer;
     }
 
     public void setPassword(String password) {
@@ -142,21 +145,29 @@ public class SynapseEntry {
         return serverIp;
     }
 
+    public void setServerIp(String serverIp) {
+        this.serverIp = serverIp;
+    }
+
     public int getPort() {
         return port;
     }
 
-    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet){
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet) {
         this.broadcastPacket(players, packet, false);
     }
 
-    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet, boolean direct){
+    public void broadcastPacket(SynapsePlayer[] players, DataPacket packet, boolean direct) {
         packet.encode();
         BroadcastPacket broadcastPacket = new BroadcastPacket();
         broadcastPacket.direct = direct;
         broadcastPacket.payload = packet.getBuffer();
         broadcastPacket.entries = new ArrayList<>();
-        for (SynapsePlayer player : players){
+        for (SynapsePlayer player : players) {
             broadcastPacket.entries.add(player.getUniqueId());
         }
         this.sendDataPacket(broadcastPacket);
@@ -166,11 +177,15 @@ public class SynapseEntry {
         return isMainServer;
     }
 
+    public void setMainServer(boolean mainServer) {
+        isMainServer = mainServer;
+    }
+
     public String getHash() {
         return this.serverIp + ":" + this.port;
     }
 
-    public void connect(){
+    public void connect() {
         this.getSynapse().getLogger().notice("Connecting " + this.getHash());
         this.verified = false;
         ConnectPacket pk = new ConnectPacket();
@@ -283,26 +298,15 @@ public class SynapseEntry {
         }
     }
 
-    public static String getRandomString(int length) { //length表示生成字符串的长度
-        String base = "abcdefghijklmnopqrstuvwxyz0123456789";
-        Random random = new Random();
-        StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < length; i++) {
-            int number = random.nextInt(base.length());
-            sb.append(base.charAt(number));
-        }
-        return sb.toString();
-    }
-
-    public void removePlayer(SynapsePlayer player){
+    public void removePlayer(SynapsePlayer player) {
         UUID uuid = player.getUniqueId();
-        if(this.players.containsKey(uuid)){
+        if (this.players.containsKey(uuid)) {
             this.players.remove(uuid);
         }
     }
 
-    public void removePlayer(UUID uuid){
-        if(this.players.containsKey(uuid)){
+    public void removePlayer(UUID uuid) {
+        if (this.players.containsKey(uuid)) {
             this.players.remove(uuid);
         }
     }
@@ -311,17 +315,14 @@ public class SynapseEntry {
     private final Queue<PlayerLogoutPacket> playerLogoutQueue = new LinkedBlockingQueue<>();
     private final Queue<RedirectPacketEntry> redirectPacketQueue = new LinkedBlockingQueue<>();
 
-    private final Timing handleDataPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleDataPacket");
-    private final Timing handleRedirectPacketTiming = TimingsManager.getTiming("SynapseEntry - HandleRedirectPacket");
-
-    public void handleDataPacket(SynapseDataPacket pk){
-        //this.handleDataPacketTiming.startTiming();
+    public void handleDataPacket(SynapseDataPacket pk) {
+        this.handleDataPacketTiming.startTiming();
         //this.getSynapse().getLogger().warning("Received packet " + pk.pid() + "(" + pk.getClass().getSimpleName() + ") from " + this.serverIp + ":" + this.port);
-        switch(pk.pid()){
+        switch (pk.pid()) {
             case SynapseInfo.DISCONNECT_PACKET:
                 DisconnectPacket disconnectPacket = (DisconnectPacket) pk;
                 this.verified = false;
-                switch(disconnectPacket.type){
+                switch (disconnectPacket.type) {
                     case DisconnectPacket.TYPE_GENERIC:
                         this.getSynapse().getLogger().notice("Synapse Client has disconnected due to " + disconnectPacket.message);
                         this.synapseInterface.reconnect();
@@ -332,13 +333,13 @@ public class SynapseEntry {
                 }
                 break;
             case SynapseInfo.INFORMATION_PACKET:
-                InformationPacket informationPacket = (InformationPacket)pk;
-                switch(informationPacket.type){
+                InformationPacket informationPacket = (InformationPacket) pk;
+                switch (informationPacket.type) {
                     case InformationPacket.TYPE_LOGIN:
-                        if (informationPacket.message.equals(InformationPacket.INFO_LOGIN_SUCCESS)){
+                        if (informationPacket.message.equals(InformationPacket.INFO_LOGIN_SUCCESS)) {
                             this.getSynapse().getLogger().notice("Login success to " + this.serverIp + ":" + this.port);
                             this.verified = true;
-                        } else if(informationPacket.message.equals(InformationPacket.INFO_LOGIN_FAILED)){
+                        } else if (informationPacket.message.equals(InformationPacket.INFO_LOGIN_FAILED)) {
                             this.getSynapse().getLogger().notice("Login failed to " + this.serverIp + ":" + this.port);
                         }
                         break;
@@ -353,11 +354,11 @@ public class SynapseEntry {
                 this.playerLoginQueue.offer((PlayerLoginPacket)pk);
                 break;
             case SynapseInfo.REDIRECT_PACKET:
-                RedirectPacket redirectPacket = (RedirectPacket)pk;
+                RedirectPacket redirectPacket = (RedirectPacket) pk;
                 UUID uuid = redirectPacket.uuid;
-                if(this.players.containsKey(uuid)){
+                if (this.players.containsKey(uuid)) {
                     DataPacket pk0 = this.getSynapse().getPacket(redirectPacket.mcpeBuffer);
-                    if(pk0 != null) {
+                    if (pk0 != null) {
                         this.handleRedirectPacketTiming.startTiming();
                         pk0.decode();
                         SynapsePlayer player = this.players.get(uuid);
@@ -375,6 +376,11 @@ public class SynapseEntry {
                 break;
             case SynapseInfo.PLAYER_LOGOUT_PACKET:
                 this.playerLogoutQueue.offer((PlayerLogoutPacket)pk);
+                break;
+            case SynapseInfo.PLUGIN_MESSAGE_PACKET:
+                PluginMessagePacket messagePacket = (PluginMessagePacket) pk;
+
+                this.synapse.getMessenger().dispatchIncomingMessage(this, messagePacket.channel, messagePacket.data);
                 break;
         }
         //this.handleDataPacketTiming.stopTiming();
@@ -424,4 +430,13 @@ public class SynapseEntry {
         return new ArrayList<>();
     }
 
+    public void sendPluginMessage(Plugin plugin, String channel, byte[] message) {
+        StandardMessenger.validatePluginMessage(this.synapse.getMessenger(), plugin, channel, message);
+
+        PluginMessagePacket pk = new PluginMessagePacket();
+        pk.channel = channel;
+        pk.data = message;
+
+        this.sendDataPacket(pk);
+    }
 }

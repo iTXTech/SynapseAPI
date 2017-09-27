@@ -35,12 +35,14 @@ import co.aikar.timings.Timings;
 import co.aikar.timings.TimingsManager;
 import com.google.gson.Gson;
 import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
+import org.itxtech.synapseapi.event.player.SynapsePlayerTransferEvent;
 import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.synapseapi.runnable.SendChangeDimensionRunnable;
 import org.itxtech.synapseapi.runnable.SendPlayerSpawnRunnable;
 import org.itxtech.synapseapi.runnable.TransferRunnable;
 import org.itxtech.synapseapi.utils.ClientData;
+import org.itxtech.synapseapi.utils.ClientData.Entry;
 import org.itxtech.synapseapi.utils.DataPacketEidReplacer;
 
 import java.util.*;
@@ -50,17 +52,30 @@ import java.util.*;
  */
 public class SynapsePlayer extends Player {
 
-    private boolean isFirstTimeLogin = false;
+    private static final Map<Byte, Timing> handlePlayerDataPacketTimings = new HashMap<>();
     public boolean isSynapseLogin = false;
-
     protected SynapseEntry synapseEntry;
-
+    private boolean isFirstTimeLogin = false;
     private long synapseSlowLoginUntil = 0;
 
     public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, String ip, int port) {
         super(interfaz, clientID, ip, port);
         this.synapseEntry = synapseEntry;
         this.isSynapseLogin = this.synapseEntry != null;
+    }
+
+    /**
+     * Returns a client-friendly gamemode of the specified real gamemode
+     * This function takes care of handling gamemodes known to MCPE (as of 1.1.0.3, that includes Survival, Creative and Adventure)
+     * <p>
+     * TODO: remove this when Spectator Mode gets added properly to MCPE
+     */
+    private static int getClientFriendlyGamemode(int gamemode) {
+        gamemode &= 0x03;
+        if (gamemode == Player.SPECTATOR) {
+            return Player.CREATIVE;
+        }
+        return gamemode;
     }
 
     public void handleLoginPacket(PlayerLoginPacket packet) {
@@ -326,22 +341,6 @@ public class SynapsePlayer extends Player {
         this.sendAttributes();
     }
 
-    /**
-     *
-     * Returns a client-friendly gamemode of the specified real gamemode
-     * This function takes care of handling gamemodes known to MCPE (as of 1.1.0.3, that includes Survival, Creative and Adventure)
-     *
-     * TODO: remove this when Spectator Mode gets added properly to MCPE
-     *
-     */
-    private static int getClientFriendlyGamemode(int gamemode){
-        gamemode &= 0x03;
-        if (gamemode == Player.SPECTATOR) {
-            return Player.CREATIVE;
-        }
-        return gamemode;
-    }
-
     protected void forceSendEmptyChunks() {
         int chunkPositionX = this.getFloorX() >> 4;
         int chunkPositionZ = this.getFloorZ() >> 4;
@@ -358,13 +357,26 @@ public class SynapsePlayer extends Player {
         Server.getInstance().batchPackets(new Player[]{this}, pkList.stream().toArray(DataPacket[]::new));
     }
 
+    public boolean transferByDescription(String serverDescription) {
+        return this.transfer(this.getSynapseEntry().getClientData().getHashByDescription(serverDescription));
+    }
+
     public boolean transfer(String hash) {
         return this.transfer(hash, true);
     }
 
     public boolean transfer(String hash, boolean loadScreen) {
         ClientData clients = this.getSynapseEntry().getClientData();
-        if (clients.clientList.containsKey(hash)) {
+        Entry clientData = clients.clientList.get(hash);
+
+        if (clientData != null) {
+            SynapsePlayerTransferEvent event = new SynapsePlayerTransferEvent(this, clientData);
+            this.server.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                return false;
+            }
+
             for (Entity entity : this.getLevel().getEntities()) {
                 if (entity.getViewers().containsKey(this.getLoaderId())) {
                     entity.despawnFrom(this);
@@ -385,8 +397,6 @@ public class SynapsePlayer extends Player {
         return false;
     }
 
-    private static final Map<Byte, Timing> handlePlayerDataPacketTimings = new HashMap<>();
-
     @Override
     public void handleDataPacket(DataPacket packet) {
         if (!this.isSynapseLogin) {
@@ -399,7 +409,8 @@ public class SynapsePlayer extends Player {
         super.handleDataPacket(packet);
 
         dataPacketTiming.stopTiming();
-        if (!handlePlayerDataPacketTimings.containsKey(packet.pid())) handlePlayerDataPacketTimings.put(packet.pid(), dataPacketTiming);
+        if (!handlePlayerDataPacketTimings.containsKey(packet.pid()))
+            handlePlayerDataPacketTimings.put(packet.pid(), dataPacketTiming);
 
     }
 
