@@ -1,28 +1,16 @@
 package org.itxtech.synapseapi;
 
 import cn.nukkit.AdventureSettings;
+import cn.nukkit.AdventureSettings.Type;
 import cn.nukkit.Player;
 import cn.nukkit.PlayerFood;
 import cn.nukkit.Server;
-import cn.nukkit.block.BlockAir;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.data.CommandDataVersions;
 import cn.nukkit.entity.Entity;
-import cn.nukkit.entity.item.EntityItem;
-import cn.nukkit.entity.item.EntityVehicle;
-import cn.nukkit.entity.item.EntityXPOrb;
-import cn.nukkit.entity.projectile.EntityArrow;
-import cn.nukkit.event.entity.EntityDamageByEntityEvent;
-import cn.nukkit.event.entity.EntityDamageEvent;
-import cn.nukkit.event.player.PlayerInteractEntityEvent;
 import cn.nukkit.event.player.PlayerKickEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
-import cn.nukkit.event.player.PlayerMouseOverEntityEvent;
-import cn.nukkit.event.server.DataPacketReceiveEvent;
 import cn.nukkit.event.server.DataPacketSendEvent;
-import cn.nukkit.item.Item;
-import cn.nukkit.item.ItemBlock;
-import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Position;
 import cn.nukkit.math.NukkitMath;
@@ -31,9 +19,7 @@ import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
 import cn.nukkit.utils.TextFormat;
 import co.aikar.timings.Timing;
-import co.aikar.timings.Timings;
 import co.aikar.timings.TimingsManager;
-import com.google.gson.Gson;
 import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.event.player.SynapsePlayerTransferEvent;
 import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
@@ -88,6 +74,7 @@ public class SynapsePlayer extends Player {
         this.server.getPluginManager().callEvent(ev = new SynapsePlayerConnectEvent(this, this.isFirstTimeLogin));
         if (!ev.isCancelled()) {
             DataPacket pk = SynapseAPI.getInstance().getPacket(packet.cachedLoginPacket);
+            pk.setOffset(3);
             pk.decode();
             this.handleDataPacket(pk);
         }
@@ -103,186 +90,200 @@ public class SynapsePlayer extends Player {
             super.processLogin();
             return;
         }
-        if (!this.isFirstTimeLogin || this.synapseSlowLoginUntil == 0) {
-            if (!this.server.isWhitelisted((this.getName()).toLowerCase())) {
-                this.kick(PlayerKickEvent.Reason.NOT_WHITELISTED, "Server is white-listed");
+        if (!this.server.isWhitelisted((this.getName()).toLowerCase())) {
+            this.kick(PlayerKickEvent.Reason.NOT_WHITELISTED, "Server is white-listed");
 
-                return;
-            } else if (this.isBanned()) {
-                this.kick(PlayerKickEvent.Reason.NAME_BANNED, "You are banned");
-                return;
-            } else if (this.server.getIPBans().isBanned(this.getAddress())) {
-                this.kick(PlayerKickEvent.Reason.IP_BANNED, "You are banned");
-                return;
-            }
+            return;
+        } else if (this.isBanned()) {
+            this.kick(PlayerKickEvent.Reason.NAME_BANNED, "You are banned");
+            return;
+        } else if (this.server.getIPBans().isBanned(this.getAddress())) {
+            this.kick(PlayerKickEvent.Reason.IP_BANNED, "You are banned");
+            return;
+        }
 
-            if (this.hasPermission(Server.BROADCAST_CHANNEL_USERS)) {
-                this.server.getPluginManager().subscribeToPermission(Server.BROADCAST_CHANNEL_USERS, this);
-            }
-            if (this.hasPermission(Server.BROADCAST_CHANNEL_ADMINISTRATIVE)) {
-                this.server.getPluginManager().subscribeToPermission(Server.BROADCAST_CHANNEL_ADMINISTRATIVE, this);
-            }
+        if (this.hasPermission(Server.BROADCAST_CHANNEL_USERS)) {
+            this.server.getPluginManager().subscribeToPermission(Server.BROADCAST_CHANNEL_USERS, this);
+        }
+        if (this.hasPermission(Server.BROADCAST_CHANNEL_ADMINISTRATIVE)) {
+            this.server.getPluginManager().subscribeToPermission(Server.BROADCAST_CHANNEL_ADMINISTRATIVE, this);
+        }
 
-            for (Player p : new ArrayList<>(this.server.getOnlinePlayers().values())) {
-                if (p != this && p.getName() != null && p.getName().equalsIgnoreCase(this.getName())) {
-                    if (!p.kick(PlayerKickEvent.Reason.NEW_CONNECTION, "logged in from another location")) {
-                        this.close(this.getLeaveMessage(), "Already connected");
-                        return;
-                    }
-                } else if (p.loggedIn && this.getUniqueId().equals(p.getUniqueId())) {
-                    if (!p.kick(PlayerKickEvent.Reason.NEW_CONNECTION, "logged in from another location")) {
-                        this.close(this.getLeaveMessage(), "Already connected");
-                        return;
-                    }
+        for (Player p : new ArrayList<>(this.server.getOnlinePlayers().values())) {
+            if (p != this && p.getName() != null && p.getName().equalsIgnoreCase(this.getName())) {
+                if (!p.kick(PlayerKickEvent.Reason.NEW_CONNECTION, "logged in from another location")) {
+                    this.close(this.getLeaveMessage(), "Already connected");
+                    return;
+                }
+            } else if (p.loggedIn && this.getUniqueId().equals(p.getUniqueId())) {
+                if (!p.kick(PlayerKickEvent.Reason.NEW_CONNECTION, "logged in from another location")) {
+                    this.close(this.getLeaveMessage(), "Already connected");
+                    return;
                 }
             }
+        }
 
-            CompoundTag nbt = this.server.getOfflinePlayerData(this.username);
-            if (nbt == null) {
-                this.close(this.getLeaveMessage(), "Invalid data");
+        CompoundTag nbt = this.server.getOfflinePlayerData(this.username);
+        if (nbt == null) {
+            this.close(this.getLeaveMessage(), "Invalid data");
 
-                return;
+            return;
+        }
+
+        this.playedBefore = (nbt.getLong("lastPlayed") - nbt.getLong("firstPlayed")) > 1;
+
+        boolean alive = true;
+
+        nbt.putString("NameTag", this.username);
+
+        if (0 >= nbt.getShort("Health")) {
+            alive = false;
+        }
+
+        int exp = nbt.getInt("EXP");
+        int expLevel = nbt.getInt("expLevel");
+        this.setExperience(exp, expLevel);
+
+        this.gamemode = nbt.getInt("playerGameType") & 0x03;
+        if (this.server.getForceGamemode()) {
+            this.gamemode = this.server.getGamemode();
+            nbt.putInt("playerGameType", this.gamemode);
+        }
+
+        this.adventureSettings = new AdventureSettings(this)
+                .set(Type.WORLD_IMMUTABLE, !isAdventure())
+                .set(Type.AUTO_JUMP, true)
+                .set(Type.ALLOW_FLIGHT, isCreative())
+                .set(Type.NO_CLIP, isSpectator());
+
+        Level level;
+        if ((level = this.server.getLevelByName(nbt.getString("Level"))) == null || !alive) {
+            this.setLevel(this.server.getDefaultLevel());
+            nbt.putString("Level", this.level.getName());
+            nbt.getList("Pos", DoubleTag.class)
+                    .add(new DoubleTag("0", this.level.getSpawnLocation().x))
+                    .add(new DoubleTag("1", this.level.getSpawnLocation().y))
+                    .add(new DoubleTag("2", this.level.getSpawnLocation().z));
+        } else {
+            this.setLevel(level);
+        }
+
+        for (Tag achievement : nbt.getCompound("Achievements").getAllTags()) {
+            if (!(achievement instanceof ByteTag)) {
+                continue;
             }
 
-            this.playedBefore = (nbt.getLong("lastPlayed") - nbt.getLong("firstPlayed")) > 1;
-
-            boolean alive = true;
-
-            nbt.putString("NameTag", this.username);
-
-            if (0 >= nbt.getShort("Health")) {
-                alive = false;
+            if (((ByteTag) achievement).getData() > 0) {
+                this.achievements.add(achievement.getName());
             }
+        }
 
-            int exp = nbt.getInt("EXP");
-            int expLevel = nbt.getInt("expLevel");
-            this.setExperience(exp, expLevel);
+        nbt.putLong("lastPlayed", System.currentTimeMillis() / 1000);
 
-            this.gamemode = nbt.getInt("playerGameType") & 0x03;
-            if (this.server.getForceGamemode()) {
-                this.gamemode = this.server.getGamemode();
-                nbt.putInt("playerGameType", this.gamemode);
-            }
+        if (this.server.getAutoSave()) {
+            this.server.saveOfflinePlayerData(this.username, nbt, true);
+        }
 
-            this.adventureSettings = new AdventureSettings.Builder(this)
-                    .canDestroyBlock(!isAdventure())
-                    .autoJump(true)
-                    .canFly(isCreative())
-                    .noclip(isSpectator())
-                    .build();
+        this.sendPlayStatus(PlayStatusPacket.LOGIN_SUCCESS);
+        this.server.onPlayerLogin(this);
 
-            Level level;
-            if ((level = this.server.getLevelByName(nbt.getString("Level"))) == null || !alive) {
-                this.setLevel(this.server.getDefaultLevel());
-                nbt.putString("Level", this.level.getName());
-                nbt.getList("Pos", DoubleTag.class)
-                        .add(new DoubleTag("0", this.level.getSpawnLocation().x))
-                        .add(new DoubleTag("1", this.level.getSpawnLocation().y))
-                        .add(new DoubleTag("2", this.level.getSpawnLocation().z));
+        ListTag<DoubleTag> posList = nbt.getList("Pos", DoubleTag.class);
+
+        super.init(this.level.getChunk((int) posList.get(0).data >> 4, (int) posList.get(2).data >> 4, true), nbt);
+
+        if (!this.namedTag.contains("foodLevel")) {
+            this.namedTag.putInt("foodLevel", 20);
+        }
+        int foodLevel = this.namedTag.getInt("foodLevel");
+        if (!this.namedTag.contains("FoodSaturationLevel")) {
+            this.namedTag.putFloat("FoodSaturationLevel", 20);
+        }
+        float foodSaturationLevel = this.namedTag.getFloat("foodSaturationLevel");
+        this.foodData = new PlayerFood(this, foodLevel, foodSaturationLevel);
+
+        if (this.isSpectator()) this.keepMovement = true;
+
+        this.forceMovement = this.teleportPosition = this.getPosition();
+
+        if (this.isFirstTimeLogin) {
+            ResourcePacksInfoPacket infoPacket = new ResourcePacksInfoPacket();
+            infoPacket.resourcePackEntries = this.server.getResourcePackManager().getResourceStack();
+            infoPacket.mustAccept = this.server.getForceResources();
+            this.dataPacket(infoPacket);
+        } else {
+            this.completeLoginSequence();
+        }
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    protected void completeLoginSequence() {
+        PlayerLoginEvent ev;
+        this.server.getPluginManager().callEvent(ev = new PlayerLoginEvent(this, "Plugin reason"));
+        if (ev.isCancelled()) {
+            this.close(this.getLeaveMessage(), ev.getKickMessage());
+
+            return;
+        }
+
+        this.server.addOnlinePlayer(this);
+        this.loggedIn = true;
+
+        if (this.isCreative()) {
+            this.inventory.setHeldItemSlot(0);
+        } else {
+            this.inventory.setHeldItemSlot(this.inventory.getHotbarSlotIndex(0));
+        }
+
+        if (this.isSpectator()) this.keepMovement = true;
+
+        Level level;
+        if (this.spawnPosition == null && this.namedTag.contains("SpawnLevel") && (level = this.server.getLevelByName(this.namedTag.getString("SpawnLevel"))) != null) {
+            this.spawnPosition = new Position(this.namedTag.getInt("SpawnX"), this.namedTag.getInt("SpawnY"), this.namedTag.getInt("SpawnZ"), level);
+        }
+
+        Position spawnPosition = this.getSpawn();
+        if (this.isFirstTimeLogin) {
+            StartGamePacket startGamePacket = new StartGamePacket();
+            startGamePacket.entityUniqueId = Long.MAX_VALUE;
+            startGamePacket.entityRuntimeId = Long.MAX_VALUE;
+            startGamePacket.playerGamemode = getClientFriendlyGamemode(this.gamemode);
+            startGamePacket.x = (float) this.x;
+            startGamePacket.y = (float) this.y;
+            startGamePacket.z = (float) this.z;
+            startGamePacket.yaw = (float) this.yaw;
+            startGamePacket.pitch = (float) this.pitch;
+            startGamePacket.seed = -1;
+            startGamePacket.dimension = (byte) (this.level.getDimension() & 0xff);
+            startGamePacket.worldGamemode = getClientFriendlyGamemode(this.gamemode);
+            startGamePacket.difficulty = this.server.getDifficulty();
+            startGamePacket.spawnX = (int) spawnPosition.x;
+            startGamePacket.spawnY = (int) spawnPosition.y;
+            startGamePacket.spawnZ = (int) spawnPosition.z;
+            startGamePacket.hasAchievementsDisabled = true;
+            startGamePacket.dayCycleStopTime = -1;
+            startGamePacket.eduMode = false;
+            startGamePacket.rainLevel = 0;
+            startGamePacket.lightningLevel = 0;
+            startGamePacket.commandsEnabled = this.isEnableClientCommand();
+            startGamePacket.levelId = "";
+            startGamePacket.worldName = this.getServer().getNetwork().getName();
+            startGamePacket.generator = 1; //0 old, 1 infinite, 2 flat
+            this.dataPacket(startGamePacket);
+        } else {
+            AdventureSettings newSettings = this.getAdventureSettings().clone(this);
+            newSettings.set(AdventureSettings.Type.WORLD_IMMUTABLE, gamemode != 3);
+            newSettings.set(AdventureSettings.Type.ALLOW_FLIGHT, (gamemode & 0x01) > 0);
+            newSettings.set(AdventureSettings.Type.NO_CLIP, gamemode == 0x03);
+            newSettings.set(AdventureSettings.Type.FLYING, gamemode == 0x03);
+            if (this.isSpectator()) {
+                this.keepMovement = true;
             } else {
-                this.setLevel(level);
+                this.keepMovement = false;
             }
-
-            for (Tag achievement : nbt.getCompound("Achievements").getAllTags()) {
-                if (!(achievement instanceof ByteTag)) {
-                    continue;
-                }
-
-                if (((ByteTag) achievement).getData() > 0) {
-                    this.achievements.add(achievement.getName());
-                }
-            }
-
-            nbt.putLong("lastPlayed", System.currentTimeMillis() / 1000);
-
-            if (this.server.getAutoSave()) {
-                this.server.saveOfflinePlayerData(this.username, nbt, true);
-            }
-
-            ListTag<DoubleTag> posList = nbt.getList("Pos", DoubleTag.class);
-
-            super.init(this.level.getChunk((int) posList.get(0).data >> 4, (int) posList.get(2).data >> 4, true), nbt);
-
-            if (!this.namedTag.contains("foodLevel")) {
-                this.namedTag.putInt("foodLevel", 20);
-            }
-            int foodLevel = this.namedTag.getInt("foodLevel");
-            if (!this.namedTag.contains("FoodSaturationLevel")) {
-                this.namedTag.putFloat("FoodSaturationLevel", 20);
-            }
-            float foodSaturationLevel = this.namedTag.getFloat("foodSaturationLevel");
-            this.foodData = new PlayerFood(this, foodLevel, foodSaturationLevel);
-
-            PlayerLoginEvent ev;
-            this.server.getPluginManager().callEvent(ev = new PlayerLoginEvent(this, "Plugin reason"));
-            if (ev.isCancelled()) {
-                this.close(this.getLeaveMessage(), ev.getKickMessage());
-
-                return;
-            }
-
-            this.server.addOnlinePlayer(this);
-            this.loggedIn = true;
-
-            if (this.isCreative()) {
-                this.inventory.setHeldItemSlot(0);
-            } else {
-                this.inventory.setHeldItemSlot(this.inventory.getHotbarSlotIndex(0));
-            }
-
-            if (this.isSpectator()) this.keepMovement = true;
-
-            if (this.spawnPosition == null && this.namedTag.contains("SpawnLevel") && (level = this.server.getLevelByName(this.namedTag.getString("SpawnLevel"))) != null) {
-                this.spawnPosition = new Position(this.namedTag.getInt("SpawnX"), this.namedTag.getInt("SpawnY"), this.namedTag.getInt("SpawnZ"), level);
-            }
-
-            Position spawnPosition = this.getSpawn();
-            if (this.isFirstTimeLogin) {
-                StartGamePacket startGamePacket = new StartGamePacket();
-                startGamePacket.entityUniqueId = Long.MAX_VALUE;
-                startGamePacket.entityRuntimeId = Long.MAX_VALUE;
-                startGamePacket.playerGamemode = getClientFriendlyGamemode(this.gamemode);
-                startGamePacket.x = (float) this.x;
-                startGamePacket.y = (float) this.y;
-                startGamePacket.z = (float) this.z;
-                startGamePacket.yaw = (float) this.yaw;
-                startGamePacket.pitch = (float) this.pitch;
-                startGamePacket.seed = -1;
-                startGamePacket.dimension = (byte) (this.level.getDimension() & 0xff);
-                startGamePacket.gamemode = getClientFriendlyGamemode(this.gamemode);
-                startGamePacket.difficulty = this.server.getDifficulty();
-                startGamePacket.spawnX = (int) spawnPosition.x;
-                startGamePacket.spawnY = (int) spawnPosition.y;
-                startGamePacket.spawnZ = (int) spawnPosition.z;
-                startGamePacket.hasAchievementsDisabled = true;
-                startGamePacket.dayCycleStopTime = -1;
-                startGamePacket.eduMode = false;
-                startGamePacket.rainLevel = 0;
-                startGamePacket.lightningLevel = 0;
-                startGamePacket.commandsEnabled = this.isEnableClientCommand();
-                startGamePacket.levelId = "";
-                startGamePacket.worldName = this.getServer().getNetwork().getName();
-                startGamePacket.generator = 1; //0 old, 1 infinite, 2 flat
-                this.dataPacket(startGamePacket);
-            } else {
-                AdventureSettings newSettings = this.getAdventureSettings().clone(this);
-                newSettings.setCanDestroyBlock(gamemode != 3);
-                newSettings.setCanFly((gamemode & 0x01) > 0);
-                newSettings.setNoclip(gamemode == 0x03);
-                newSettings.setFlying(gamemode == 0x03);
-                if (this.isSpectator()) {
-                    this.keepMovement = true;
-                } else {
-                    this.keepMovement = false;
-                }
-                SetPlayerGameTypePacket pk = new SetPlayerGameTypePacket();
-                pk.gamemode = getClientFriendlyGamemode(gamemode);
-                this.dataPacket(pk);
-            }
-            if (this.isFirstTimeLogin && this.synapseSlowLoginUntil == 0) {
-                this.synapseSlowLoginUntil = System.currentTimeMillis() + 100;
-                return;
-            }
+            SetPlayerGameTypePacket pk = new SetPlayerGameTypePacket();
+            pk.gamemode = getClientFriendlyGamemode(gamemode);
+            this.dataPacket(pk);
         }
 
         SetTimePacket setTimePacket = new SetTimePacket();
@@ -308,16 +309,11 @@ public class SynapsePlayer extends Player {
         }
 
         if (this.gamemode == Player.SPECTATOR) {
-            ContainerSetContentPacket containerSetContentPacket = new ContainerSetContentPacket();
-            containerSetContentPacket.windowid = ContainerSetContentPacket.SPECIAL_CREATIVE;
-            containerSetContentPacket.eid = this.id;
-            this.dataPacket(containerSetContentPacket);
+            InventoryContentPacket inventoryContentPacket = new InventoryContentPacket();
+            inventoryContentPacket.inventoryId = InventoryContentPacket.SPECIAL_CREATIVE;
+            this.dataPacket(inventoryContentPacket);
         } else {
-            ContainerSetContentPacket containerSetContentPacket = new ContainerSetContentPacket();
-            containerSetContentPacket.windowid = ContainerSetContentPacket.SPECIAL_CREATIVE;
-            containerSetContentPacket.eid = this.id;
-            containerSetContentPacket.slots = Item.getCreativeItems().stream().toArray(Item[]::new);
-            this.dataPacket(containerSetContentPacket);
+            this.inventory.sendCreativeContents();
         }
 
         this.setEnableClientCommand(true);
@@ -331,7 +327,6 @@ public class SynapsePlayer extends Player {
         ChunkRadiusUpdatedPacket chunkRadiusUpdatePacket = new ChunkRadiusUpdatedPacket();
         chunkRadiusUpdatePacket.radius = this.chunkRadius;
         this.dataPacket(chunkRadiusUpdatePacket);
-        this.synapseSlowLoginUntil = -1;
     }
 
     @Override
@@ -419,9 +414,9 @@ public class SynapsePlayer extends Player {
         if (!this.isSynapseLogin) {
             return super.onUpdate(currentTick);
         }
-        if (this.loggedIn && this.synapseSlowLoginUntil != -1 && System.currentTimeMillis() >= this.synapseSlowLoginUntil) {
+        /*if (this.loggedIn && this.synapseSlowLoginUntil != -1 && System.currentTimeMillis() >= this.synapseSlowLoginUntil) {
             this.processLogin();
-        }
+        }*/
         return super.onUpdate(currentTick);
     }
 
@@ -439,24 +434,25 @@ public class SynapsePlayer extends Player {
             CommandDataVersions data0 = command.generateCustomCommandData(this);
             data.put(command.getName(), data0);
         }
-        pk.commands = new Gson().toJson(data);
+        pk.commands = data;
         this.dataPacket(pk, true);
     }
 
     @Override
     public int dataPacket(DataPacket packet, boolean needACK) {
         if (!this.isSynapseLogin) return super.dataPacket(packet, needACK);
-        if (!this.isFirstTimeLogin && packet instanceof ResourcePacksInfoPacket) {
+        /*if (!this.isFirstTimeLogin && packet instanceof ResourcePacksInfoPacket) {
             this.processLogin();
             return -1;
-        }
+        }*/
         packet = new DataPacketEidReplacer(packet).replace(this.getId(), Long.MAX_VALUE);
         DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
         this.server.getPluginManager().callEvent(ev);
         if (ev.isCancelled()) {
             return -1;
         }
-        packet.encode();
+
+        //packet.encode(); encoded twice?
         //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{packet.getBuffer()[0]}) + "  len: " + packet.getBuffer().length);
         return this.interfaz.putPacket(this, packet, needACK);
     }
@@ -489,5 +485,4 @@ public class SynapsePlayer extends Player {
 
         this.getSynapseEntry().sendDataPacket(pk);
     }
-
 }
