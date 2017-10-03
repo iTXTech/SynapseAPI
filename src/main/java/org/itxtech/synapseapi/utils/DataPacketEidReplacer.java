@@ -59,12 +59,11 @@ public class DataPacketEidReplacer {
             case MobArmorEquipmentPacket.NETWORK_ID:
                 if (((MobArmorEquipmentPacket) packet).eid == from) ((MobArmorEquipmentPacket) packet).eid = to;
                 break;
-            case ContainerSetContentPacket.NETWORK_ID:
-                if (((ContainerSetContentPacket) packet).eid == from) ((ContainerSetContentPacket) packet).eid = to;
-                break;
             case PlayerListPacket.NETWORK_ID:
                 Arrays.stream(((PlayerListPacket) packet).entries).filter(entry -> entry.entityId == from).forEach(entry -> entry.entityId = to);
                 break;
+            case BossEventPacket.NETWORK_ID:
+                if (((BossEventPacket) packet).bossEid == from) ((BossEventPacket) packet).bossEid = to;
         }
         return this.packet;
     }

@@ -5,6 +5,8 @@ import cn.nukkit.Server;
 import cn.nukkit.math.NukkitMath;
 import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
+import cn.nukkit.network.protocol.ProtocolInfo;
+import cn.nukkit.network.protocol.ResourcePacksInfoPacket;
 import cn.nukkit.utils.Binary;
 import org.itxtech.synapseapi.SynapseAPI;
 import org.itxtech.synapseapi.network.SynapseInterface;
@@ -73,6 +75,8 @@ public class SynapseEntryPutPacketThread extends Thread {
                                         Binary.appendBytes(Binary.writeUnsignedVarInt(buffer.length), buffer),
                                         Server.getInstance().networkCompressionLevel);
                                 pk.mcpeBuffer = Binary.appendBytes((byte) 0xfe, buffer);
+                                if (entry.packet.pid() == ProtocolInfo.RESOURCE_PACKS_INFO_PACKET)
+                                    Server.getInstance().getLogger().notice("ResourcePacksInfoPacket length=" + buffer.length + " " + Binary.bytesToHexString(buffer));
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }

@@ -31,9 +31,7 @@ import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
 import cn.nukkit.utils.TextFormat;
 import co.aikar.timings.Timing;
-import co.aikar.timings.Timings;
 import co.aikar.timings.TimingsManager;
-import com.google.gson.Gson;
 import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.event.player.SynapsePlayerTransferEvent;
 import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
@@ -440,7 +438,7 @@ public class SynapsePlayer extends Player {
             CommandDataVersions data0 = command.generateCustomCommandData(this);
             data.put(command.getName(), data0);
         }
-        pk.commands = new Gson().toJson(data);
+        pk.commands = data;
         this.dataPacket(pk, true);
     }
 

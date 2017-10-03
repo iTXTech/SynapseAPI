@@ -80,6 +80,9 @@ public class SynapseEntry {
         this.lastUpdate = System.currentTimeMillis();
         this.lastRecvInfo = System.currentTimeMillis();
         this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(SynapseAPI.getInstance(), new Ticker(this), 1);
+        Thread ticker = new Thread(new AsyncTicker());
+        ticker.setName("SynapseAPI Async Ticker");
+        ticker.start();
     }
 
     public static String getRandomString(int length) { //length表示生成字符串的长度
@@ -195,10 +198,6 @@ public class SynapseEntry {
         pk.maxPlayers = this.getSynapse().getServer().getMaxPlayers();
         pk.protocol = SynapseInfo.CURRENT_PROTOCOL;
         this.sendDataPacket(pk);
-
-        Thread ticker = new Thread(new AsyncTicker());
-        ticker.setName("SynapseAPI Async Ticker");
-        ticker.start();
     }
 
     public class AsyncTicker implements Runnable {
