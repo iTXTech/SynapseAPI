@@ -68,4 +68,7 @@ public class DataPacketEidReplacer {
         return this.packet;
     }
 
+    /*public void replaceMetadata(EntityMetadata data, long from, long to) {
+        if(data.getLong(Entity.DATA_OWNER_EID) == from) data.set
+    }*/
 }

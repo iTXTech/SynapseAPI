@@ -6,21 +6,14 @@ import cn.nukkit.math.NukkitMath;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
-import cn.nukkit.plugin.Plugin;
 import cn.nukkit.network.protocol.ProtocolInfo;
+import cn.nukkit.plugin.Plugin;
 import cn.nukkit.utils.Binary;
 import cn.nukkit.utils.BinaryStream;
 import cn.nukkit.utils.Zlib;
 import co.aikar.timings.Timing;
 import co.aikar.timings.TimingsManager;
 import com.google.gson.Gson;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.handler.codec.compression.JdkZlibDecoder;
-import io.netty.handler.codec.compression.ZlibCodecFactory;
-import io.netty.handler.codec.compression.ZlibDecoder;
-import io.netty.handler.codec.compression.ZlibWrapper;
 import org.itxtech.synapseapi.event.player.SynapsePlayerCreationEvent;
 import org.itxtech.synapseapi.messaging.StandardMessenger;
 import org.itxtech.synapseapi.network.SynLibInterface;
@@ -28,15 +21,10 @@ import org.itxtech.synapseapi.network.SynapseInterface;
 import org.itxtech.synapseapi.network.protocol.spp.*;
 import org.itxtech.synapseapi.utils.ClientData;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
 
 /**
  * @author boybook
@@ -80,6 +68,7 @@ public class SynapseEntry {
         this.lastUpdate = System.currentTimeMillis();
         this.lastRecvInfo = System.currentTimeMillis();
         this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(SynapseAPI.getInstance(), new Ticker(this), 1);
+
         Thread ticker = new Thread(new AsyncTicker());
         ticker.setName("SynapseAPI Async Ticker");
         ticker.start();
@@ -270,7 +259,7 @@ public class SynapseEntry {
 
     public void threadTick(){
         this.synapseInterface.process();
-        if (!this.getSynapseInterface().isConnected()) return;
+        if (!this.getSynapseInterface().isConnected() || !this.verified) return;
         long time = System.currentTimeMillis();
         if ((time - this.lastUpdate) >= 5000) {  //Heartbeat!
             this.lastUpdate = time;
@@ -412,7 +401,7 @@ public class SynapseEntry {
                 DataPacket pk;
 
                 if ((pk = Server.getInstance().getNetwork().getPacket(buf[0])) != null) {
-                    pk.setBuffer(buf, 1);
+                    pk.setBuffer(buf, 3);
 
                     pk.decode();
 

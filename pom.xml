@@ -20,7 +20,7 @@
         <repository>
             <id>nukkit-mengcraft</id>
             <name>nukkit-mengcraft</name>
-            <url>http://ci.mengcraft.com:8080/job/Nukkit/lastSuccessfulBuild/maven-repository/repository/</url>
+            <url>https://repo.potestas.xyz/</url>
             <layout>default</layout>
             <releases>
                 <enabled>true</enabled>
