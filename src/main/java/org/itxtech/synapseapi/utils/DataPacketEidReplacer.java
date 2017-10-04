@@ -62,6 +62,8 @@ public class DataPacketEidReplacer {
             case PlayerListPacket.NETWORK_ID:
                 Arrays.stream(((PlayerListPacket) packet).entries).filter(entry -> entry.entityId == from).forEach(entry -> entry.entityId = to);
                 break;
+            case BossEventPacket.NETWORK_ID:
+                if (((BossEventPacket) packet).bossEid == from) ((BossEventPacket) packet).bossEid = to;
         }
         return this.packet;
     }

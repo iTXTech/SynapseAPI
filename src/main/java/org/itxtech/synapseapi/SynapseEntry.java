@@ -72,7 +72,6 @@ public class SynapseEntry {
         Thread ticker = new Thread(new AsyncTicker());
         ticker.setName("SynapseAPI Async Ticker");
         ticker.start();
-
     }
 
     public static String getRandomString(int length) { //length表示生成字符串的长度
