@@ -64,6 +64,10 @@ public class DataPacketEidReplacer {
                 break;
             case BossEventPacket.NETWORK_ID:
                 if (((BossEventPacket) packet).bossEid == from) ((BossEventPacket) packet).bossEid = to;
+                break;
+            case AdventureSettingsPacket.NETWORK_ID:
+                if (((AdventureSettingsPacket) packet).entityUniqueId == from) ((AdventureSettingsPacket) packet).entityUniqueId = to;
+                break;
         }
         return this.packet;
     }
