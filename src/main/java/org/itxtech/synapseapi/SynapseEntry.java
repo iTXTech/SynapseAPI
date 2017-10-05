@@ -348,6 +348,7 @@ public class SynapseEntry {
                     DataPacket pk0 = this.getSynapse().getPacket(redirectPacket.mcpeBuffer);
                     if (pk0 != null) {
                         this.handleRedirectPacketTiming.startTiming();
+                        if (pk0.pid() == ProtocolInfo.BATCH_PACKET) pk0.setOffset(1);
                         pk0.decode();
                         SynapsePlayer player = this.players.get(uuid);
                         if (pk0.pid() == ProtocolInfo.BATCH_PACKET) {

@@ -218,6 +218,10 @@ public class SynapsePlayer extends Player {
     @Override
     @SuppressWarnings("deprecation")
     protected void completeLoginSequence() {
+        if (!this.isSynapseLogin) {
+            super.completeLoginSequence();
+            return;
+        }
         PlayerLoginEvent ev;
         this.server.getPluginManager().callEvent(ev = new PlayerLoginEvent(this, "Plugin reason"));
         if (ev.isCancelled()) {
@@ -225,9 +229,6 @@ public class SynapsePlayer extends Player {
 
             return;
         }
-
-        this.server.addOnlinePlayer(this);
-        this.loggedIn = true;
 
         if (this.isCreative()) {
             this.inventory.setHeldItemSlot(0);
@@ -286,10 +287,12 @@ public class SynapsePlayer extends Player {
             this.dataPacket(pk);
         }
 
-        SetTimePacket setTimePacket = new SetTimePacket();
-        setTimePacket.time = this.level.getTime();
-        this.dataPacket(setTimePacket);
+        this.loggedIn = true;
 
+        spawnPosition.level.sendTime(this);
+
+        this.setMovementSpeed(DEFAULT_SPEED);
+        this.sendAttributes();
         this.setNameTagVisible(true);
         this.setNameTagAlwaysVisible(true);
         this.setCanClimb(true);
@@ -318,11 +321,10 @@ public class SynapsePlayer extends Player {
 
         this.setEnableClientCommand(true);
 
-        this.server.sendFullPlayerListData(this);
-
         this.forceMovement = this.teleportPosition = this.getPosition();
 
-        this.server.onPlayerLogin(this);
+        this.server.addOnlinePlayer(this);
+        this.server.onPlayerCompleteLoginSequence(this);
 
         ChunkRadiusUpdatedPacket chunkRadiusUpdatePacket = new ChunkRadiusUpdatedPacket();
         chunkRadiusUpdatePacket.radius = this.chunkRadius;
@@ -332,8 +334,6 @@ public class SynapsePlayer extends Player {
     @Override
     protected void doFirstSpawn() {
         super.doFirstSpawn();
-        this.setMovementSpeed(DEFAULT_SPEED);
-        this.sendAttributes();
     }
 
     protected void forceSendEmptyChunks() {
