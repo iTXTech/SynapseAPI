@@ -106,7 +106,6 @@ public class Session {
             long time;
             if (((time = System.currentTimeMillis()) - this.lastCheck) >= 3000) {//re-connect
                 this.client.getLogger().notice("Trying to re-connect to Synapse Server");
-                this.client.getClientGroup().shutdownGracefully();
                 if (this.client.connect()) {
                     this.connected = true;
                     this.client.setConnected(true);
