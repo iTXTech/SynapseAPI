@@ -98,7 +98,6 @@ public class SynapseAPI extends PluginBase {
         this.autoCompress = this.getConfig().getBoolean("autoCompress", true);
         if (!enable) {
             this.getLogger().warning("The SynapseAPI is not be enabled!");
-            this.setEnabled(false);
         } else {
             if (this.getConfig().getBoolean("disable-rak")) {
                 for (SourceInterface sourceInterface : this.getServer().getNetwork().getInterfaces()) {
