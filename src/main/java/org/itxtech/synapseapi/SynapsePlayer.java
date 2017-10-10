@@ -377,6 +377,7 @@ public class SynapsePlayer extends Player {
                     entity.despawnFrom(this);
                 }
             }
+            /* Not works
             if (loadScreen && SynapseAPI.getInstance().isUseLoadingScreen()) {
                 //Load Screen
                 this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 1), 1);
@@ -384,9 +385,9 @@ public class SynapsePlayer extends Player {
                 this.getServer().getScheduler().scheduleDelayedTask(new SendPlayerSpawnRunnable(this), 10);
                 this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 0), 12);
                 this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 14);
-            } else {
+            } else {*/
                 new TransferRunnable(this, hash).run();
-            }
+            //}
             return true;
         }
         return false;
