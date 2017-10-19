@@ -17,6 +17,7 @@ import cn.nukkit.math.NukkitMath;
 import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
+import cn.nukkit.utils.DummyBossBar;
 import cn.nukkit.utils.TextFormat;
 import co.aikar.timings.Timing;
 import co.aikar.timings.TimingsManager;
@@ -24,8 +25,6 @@ import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.event.player.SynapsePlayerTransferEvent;
 import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
-import org.itxtech.synapseapi.runnable.SendChangeDimensionRunnable;
-import org.itxtech.synapseapi.runnable.SendPlayerSpawnRunnable;
 import org.itxtech.synapseapi.runnable.TransferRunnable;
 import org.itxtech.synapseapi.utils.ClientData;
 import org.itxtech.synapseapi.utils.ClientData.Entry;
@@ -151,7 +150,8 @@ public class SynapsePlayer extends Player {
         }
 
         this.adventureSettings = new AdventureSettings(this)
-                .set(Type.WORLD_IMMUTABLE, !isAdventure())
+                .set(Type.WORLD_IMMUTABLE, isAdventure())
+                .set(Type.WORLD_BUILDER, !isAdventure())
                 .set(Type.AUTO_JUMP, true)
                 .set(Type.ALLOW_FLIGHT, isCreative())
                 .set(Type.NO_CLIP, isSpectator());
@@ -273,10 +273,12 @@ public class SynapsePlayer extends Player {
             this.dataPacket(startGamePacket);
         } else {
             AdventureSettings newSettings = this.getAdventureSettings().clone(this);
-            newSettings.set(AdventureSettings.Type.WORLD_IMMUTABLE, gamemode != 3);
-            newSettings.set(AdventureSettings.Type.ALLOW_FLIGHT, (gamemode & 0x01) > 0);
-            newSettings.set(AdventureSettings.Type.NO_CLIP, gamemode == 0x03);
-            newSettings.set(AdventureSettings.Type.FLYING, gamemode == 0x03);
+            newSettings.set(Type.WORLD_IMMUTABLE, (gamemode & 0x02) > 0);
+            newSettings.set(Type.BUILD_AND_MINE, (gamemode & 0x02) <= 0);
+            newSettings.set(Type.WORLD_BUILDER, (gamemode & 0x02) <= 0);
+            newSettings.set(Type.ALLOW_FLIGHT, (gamemode & 0x01) > 0);
+            newSettings.set(Type.NO_CLIP, gamemode == 0x03);
+            newSettings.set(Type.FLYING, gamemode == 0x03);
             if (this.isSpectator()) {
                 this.keepMovement = true;
             } else {
@@ -377,6 +379,8 @@ public class SynapsePlayer extends Player {
                     entity.despawnFrom(this);
                 }
             }
+            this.getDummyBossBars().values().forEach(DummyBossBar::destroy);
+            this.getDummyBossBars().clear();
             /* Not works
             if (loadScreen && SynapseAPI.getInstance().isUseLoadingScreen()) {
                 //Load Screen
@@ -386,7 +390,7 @@ public class SynapsePlayer extends Player {
                 this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 0), 12);
                 this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 14);
             } else {*/
-                new TransferRunnable(this, hash).run();
+                this.getServer().getScheduler().scheduleTask(SynapseAPI.getInstance(), new TransferRunnable(this, hash));
             //}
             return true;
         }
@@ -446,14 +450,13 @@ public class SynapsePlayer extends Player {
             this.processLogin();
             return -1;
         }*/
-        packet = new DataPacketEidReplacer(packet).replace(this.getId(), Long.MAX_VALUE);
+        packet = DataPacketEidReplacer.replace(packet, this.getId(), Long.MAX_VALUE);
         DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
         this.server.getPluginManager().callEvent(ev);
         if (ev.isCancelled()) {
             return -1;
         }
 
-        //packet.encode(); encoded twice?
         //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{packet.getBuffer()[0]}) + "  len: " + packet.getBuffer().length);
         return this.interfaz.putPacket(this, packet, needACK);
     }
@@ -461,7 +464,7 @@ public class SynapsePlayer extends Player {
     @Override
     public int directDataPacket(DataPacket packet, boolean needACK) {
         if (!this.isSynapseLogin) return super.directDataPacket(packet, needACK);
-        packet = new DataPacketEidReplacer(packet).replace(this.getId(), Long.MAX_VALUE);
+        packet = DataPacketEidReplacer.replace(packet, this.getId(), Long.MAX_VALUE);
         DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
         this.server.getPluginManager().callEvent(ev);
         if (ev.isCancelled()) {

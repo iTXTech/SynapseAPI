@@ -21,7 +21,7 @@ public class SynapseAPI extends PluginBase {
     public static boolean enable = true;
     private static SynapseAPI instance;
     private boolean autoConnect = true;
-    private boolean loadingScreen = true;
+    private boolean loadingScreen = false;
     private boolean autoCompress = true;  //Compress in Nukkit, not Nemisys
     private Map<String, SynapseEntry> synapseEntries = new HashMap<>();
     private Messenger messenger;
@@ -117,7 +117,6 @@ public class SynapseAPI extends PluginBase {
                 boolean isMainServer = section.getBoolean("isMainServer");
                 String password = section.getString("password");
                 String serverDescription = section.getString("description");
-                this.loadingScreen = section.getBoolean("loadingScreen", true);
                 this.autoConnect = section.getBoolean("autoConnect", true);
                 if (this.autoConnect) {
                     this.addSynapseAPI(new SynapseEntry(this, serverIp, port, isMainServer, password, serverDescription));

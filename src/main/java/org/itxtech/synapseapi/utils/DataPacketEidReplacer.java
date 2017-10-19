@@ -14,13 +14,8 @@ import java.util.Arrays;
  */
 public class DataPacketEidReplacer {
 
-    private DataPacket packet;
-
-    public DataPacketEidReplacer(DataPacket pk) {
-        this.packet = pk.clone();
-    }
-
-    public DataPacket replace(long from, long to) {
+    public static DataPacket replace(DataPacket pk, long from, long to) {
+        DataPacket packet = pk.clone();
         switch (packet.pid()) {
             case AnimatePacket.NETWORK_ID:
                 if (((AnimatePacket) packet).eid == from) ((AnimatePacket) packet).eid = to;
@@ -68,8 +63,16 @@ public class DataPacketEidReplacer {
             case AdventureSettingsPacket.NETWORK_ID:
                 if (((AdventureSettingsPacket) packet).entityUniqueId == from) ((AdventureSettingsPacket) packet).entityUniqueId = to;
                 break;
+            case ProtocolInfo.UPDATE_EQUIPMENT_PACKET:
+                if (((UpdateEquipmentPacket) packet).eid == from) ((UpdateEquipmentPacket) packet).eid = to;
+                break;
+            default:
+                return pk; //return origin packet object
         }
-        return this.packet;
+        //Force encode!
+        packet.encode();
+        packet.isEncoded = true;
+        return packet;
     }
 
     /*public void replaceMetadata(EntityMetadata data, long from, long to) {
