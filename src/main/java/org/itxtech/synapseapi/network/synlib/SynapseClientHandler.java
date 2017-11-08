@@ -38,6 +38,7 @@ public class SynapseClientHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         Server.getInstance().getLogger().debug("client-ChannelInactive");
         this.getSynapseClient().setConnected(false);
+        this.getSynapseClient().getClientGroup().shutdownGracefully();
         this.getSynapseClient().reconnect();
     }
 
