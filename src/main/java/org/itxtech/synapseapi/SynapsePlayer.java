@@ -9,6 +9,7 @@ import cn.nukkit.command.Command;
 import cn.nukkit.command.data.CommandDataVersions;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.event.player.PlayerKickEvent;
+import cn.nukkit.event.player.PlayerJoinEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
 import cn.nukkit.event.server.DataPacketSendEvent;
 import cn.nukkit.level.Level;
@@ -395,6 +396,17 @@ public class SynapsePlayer extends Player {
             return true;
         }
         return false;
+    }
+    
+    // Hacky Fix for ChangeDimensionPacket
+    @Override
+    public void onJoin(PlayerJoinEvent $event) {
+        $player = $event->getPlayer();
+        if (this.getLevel().getDimension() == Level.DIMENSION_NETHER) { 
+            this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 1), 1);
+        } else {
+            // Spawn. 
+        }
     }
 
     @Override
