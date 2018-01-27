@@ -1,8 +1,13 @@
 package org.itxtech.synapseapi.utils;
 
+import cn.nukkit.entity.Entity;
+import cn.nukkit.entity.data.EntityData;
+import cn.nukkit.entity.data.EntityMetadata;
 import cn.nukkit.network.protocol.*;
+import com.google.common.collect.Sets;
 
 import java.util.Arrays;
+import java.util.Set;
 
 /**
  * DataPacketEidReplacer
@@ -14,9 +19,28 @@ import java.util.Arrays;
  */
 public class DataPacketEidReplacer {
 
+    private static final Set<Integer> replaceMetadata = Sets.newHashSet(Entity.DATA_OWNER_EID, Entity.DATA_LEAD_HOLDER_EID, Entity.DATA_TRADING_PLAYER_EID, Entity.DATA_TARGET_EID);
+
     public static DataPacket replace(DataPacket pk, long from, long to) {
         DataPacket packet = pk.clone();
+        boolean change = true;
+
         switch (packet.pid()) {
+            case AddPlayerPacket.NETWORK_ID:
+                AddPlayerPacket app = (AddPlayerPacket) packet;
+
+                app.metadata = replaceMetadata(app.metadata, from, to);
+                break;
+            case AddEntityPacket.NETWORK_ID:
+                AddEntityPacket aep = (AddEntityPacket) packet;
+
+                aep.metadata = replaceMetadata(aep.metadata, from, to);
+                break;
+            case AddItemEntityPacket.NETWORK_ID:
+                AddItemEntityPacket aiep = (AddItemEntityPacket) packet;
+
+                aiep.metadata = replaceMetadata(aiep.metadata, from, to);
+                break;
             case AnimatePacket.NETWORK_ID:
                 if (((AnimatePacket) packet).eid == from) ((AnimatePacket) packet).eid = to;
                 break;
@@ -31,7 +55,10 @@ public class DataPacketEidReplacer {
                 if (((SetEntityLinkPacket) packet).riding == from) ((SetEntityLinkPacket) packet).riding = to;
                 break;
             case SetEntityDataPacket.NETWORK_ID:
-                if (((SetEntityDataPacket) packet).eid == from) ((SetEntityDataPacket) packet).eid = to;
+                SetEntityDataPacket sedp = (SetEntityDataPacket) packet;
+
+                if (sedp.eid == from) sedp.eid = to;
+                sedp.metadata = replaceMetadata(sedp.metadata, from, to);
                 break;
             case UpdateAttributesPacket.NETWORK_ID:
                 if (((UpdateAttributesPacket) packet).entityId == from) ((UpdateAttributesPacket) packet).entityId = to;
@@ -67,15 +94,40 @@ public class DataPacketEidReplacer {
                 if (((UpdateEquipmentPacket) packet).eid == from) ((UpdateEquipmentPacket) packet).eid = to;
                 break;
             default:
-                return pk; //return origin packet object
+                change = false;
         }
-        //Force encode!
-        packet.encode();
-        packet.isEncoded = true;
+
+        if (change) {
+            packet.isEncoded = false;
+        }
+
         return packet;
     }
 
-    /*public void replaceMetadata(EntityMetadata data, long from, long to) {
-        if(data.getLong(Entity.DATA_OWNER_EID) == from) data.set
-    }*/
+    private static EntityMetadata replaceMetadata(EntityMetadata data, long from, long to) {
+        boolean changed = false;
+
+        for (Integer key : replaceMetadata) {
+            if (data.getLong(key) == from) {
+                if (!changed) {
+                    data = cloneMetadata(data);
+                    changed = true;
+                }
+
+                data.putLong(key, to);
+            }
+        }
+
+        return data;
+    }
+
+    private static EntityMetadata cloneMetadata(EntityMetadata data) {
+        EntityMetadata newData = new EntityMetadata();
+
+        for (EntityData value : data.getMap().values()) {
+            newData.put(value);
+        }
+
+        return newData;
+    }
 }

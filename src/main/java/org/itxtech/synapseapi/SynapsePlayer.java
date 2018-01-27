@@ -457,6 +457,9 @@ public class SynapsePlayer extends Player {
             return -1;
         }
 
+        if (!packet.isEncoded)
+            packet.encode();
+
         //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{packet.getBuffer()[0]}) + "  len: " + packet.getBuffer().length);
         return this.interfaz.putPacket(this, packet, needACK);
     }
