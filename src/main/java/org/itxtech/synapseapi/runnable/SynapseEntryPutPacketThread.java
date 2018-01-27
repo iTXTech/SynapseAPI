@@ -60,7 +60,7 @@ public class SynapseEntryPutPacketThread extends Thread {
             Entry entry;
             while ((entry = queue.poll()) != null) {
                 try {
-                    if (!entry.player.closed) {
+                    if (!entry.player.closed || entry.immediate) { //temporary fix for disconnect packet
                         RedirectPacket pk = new RedirectPacket();
                         pk.uuid = entry.player.getUniqueId();
                         pk.direct = entry.immediate;
