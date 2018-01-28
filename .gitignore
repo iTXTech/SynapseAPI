@@ -95,3 +95,5 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+
+rebel.xml
