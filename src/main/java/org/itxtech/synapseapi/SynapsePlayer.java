@@ -9,6 +9,7 @@ import cn.nukkit.command.Command;
 import cn.nukkit.command.data.CommandDataVersions;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.event.player.PlayerKickEvent;
+import cn.nukkit.event.player.PlayerJoinEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
 import cn.nukkit.event.server.DataPacketSendEvent;
 import cn.nukkit.level.Level;
@@ -381,7 +382,7 @@ public class SynapsePlayer extends Player {
             }
             this.getDummyBossBars().values().forEach(DummyBossBar::destroy);
             this.getDummyBossBars().clear();
-            /* Not works
+            //Not works
             if (loadScreen && SynapseAPI.getInstance().isUseLoadingScreen()) {
                 //Load Screen
                 this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 1), 1);
@@ -389,12 +390,23 @@ public class SynapsePlayer extends Player {
                 this.getServer().getScheduler().scheduleDelayedTask(new SendPlayerSpawnRunnable(this), 10);
                 this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 0), 12);
                 this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 14);
-            } else {*/
+            } else {
                 this.getServer().getScheduler().scheduleTask(SynapseAPI.getInstance(), new TransferRunnable(this, hash));
-            //}
+            }
             return true;
         }
         return false;
+    }
+    
+    // Hacky Fix for ChangeDimensionPacket
+    @Override
+    public void onJoin(PlayerJoinEvent $event) {
+        $player = $event->getPlayer();
+        if (this.getLevel().getDimension() == Level.DIMENSION_NETHER) { 
+            this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 1), 1);
+        } else {
+            // Spawn. 
+        }
     }
 
     @Override
