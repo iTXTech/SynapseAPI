@@ -381,17 +381,7 @@ public class SynapsePlayer extends Player {
             }
             this.getDummyBossBars().values().forEach(DummyBossBar::destroy);
             this.getDummyBossBars().clear();
-            /* Not works
-            if (loadScreen && SynapseAPI.getInstance().isUseLoadingScreen()) {
-                //Load Screen
-                this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 1), 1);
-                this.forceSendEmptyChunks();
-                this.getServer().getScheduler().scheduleDelayedTask(new SendPlayerSpawnRunnable(this), 10);
-                this.getServer().getScheduler().scheduleDelayedTask(new SendChangeDimensionRunnable(this, 0), 12);
-                this.getServer().getScheduler().scheduleDelayedTask(new TransferRunnable(this, hash), 14);
-            } else {*/
-                this.getServer().getScheduler().scheduleTask(SynapseAPI.getInstance(), new TransferRunnable(this, hash));
-            //}
+            new TransferRunnable(this, hash).run();
             return true;
         }
         return false;
