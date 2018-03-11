@@ -14,8 +14,8 @@ public abstract class SynapseDataPacket extends BinaryStream implements Cloneabl
     public abstract void encode();
 
     @Override
-    public void reset() {
-        super.reset();
+    public BinaryStream reset() {
+        return super.reset();
     }
 
     public SynapseDataPacket clean() {
