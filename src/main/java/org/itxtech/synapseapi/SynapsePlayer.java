@@ -270,6 +270,7 @@ public class SynapsePlayer extends Player {
             startGamePacket.levelId = "";
             startGamePacket.worldName = this.getServer().getNetwork().getName();
             startGamePacket.generator = 1; //0 old, 1 infinite, 2 flat
+            startGamePacket.gameRules = this.getLevel().getGameRules();
             this.dataPacket(startGamePacket);
         } else {
             AdventureSettings newSettings = this.getAdventureSettings().clone(this);
