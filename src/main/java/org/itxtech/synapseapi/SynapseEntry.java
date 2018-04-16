@@ -39,6 +39,8 @@ public class SynapseEntry {
     private String serverIp;
     private int port;
     private boolean isMainServer;
+    private boolean isLobbyServer;
+    private boolean transferOnShutdown;
     private String password;
     private SynapseInterface synapseInterface;
     private boolean verified = false;
@@ -49,11 +51,13 @@ public class SynapseEntry {
     private ClientData clientData;
     private String serverDescription;
 
-    public SynapseEntry(SynapseAPI synapse, String serverIp, int port, boolean isMainServer, String password, String serverDescription) {
+    public SynapseEntry(SynapseAPI synapse, String serverIp, int port, boolean isMainServer, boolean isLobbyServer, boolean transferOnShutdown, String password, String serverDescription) {
         this.synapse = synapse;
         this.serverIp = serverIp;
         this.port = port;
         this.isMainServer = isMainServer;
+        this.isLobbyServer = isLobbyServer;
+        this.transferOnShutdown = transferOnShutdown;
         this.password = password;
         if (this.password.length() != 16) {
             synapse.getLogger().warning("You must use a 16 bit length key!");
@@ -183,6 +187,8 @@ public class SynapseEntry {
         ConnectPacket pk = new ConnectPacket();
         pk.password = this.password;
         pk.isMainServer = this.isMainServer();
+        pk.isLobbyServer = isLobbyServer;
+        pk.transferShutdown = transferOnShutdown;
         pk.description = this.serverDescription;
         pk.maxPlayers = this.getSynapse().getServer().getMaxPlayers();
         pk.protocol = SynapseInfo.CURRENT_PROTOCOL;
@@ -192,6 +198,7 @@ public class SynapseEntry {
     public class AsyncTicker implements Runnable {
         private long tickUseTime;
         private long lastWarning = 0;
+
         @Override
         public void run() {
             long startTime = System.currentTimeMillis();
@@ -199,9 +206,10 @@ public class SynapseEntry {
                 threadTick();
                 tickUseTime = System.currentTimeMillis() - startTime;
                 if (tickUseTime < 10) {
-                    try{
+                    try {
                         Thread.sleep(10 - tickUseTime);
-                    } catch (InterruptedException ignore) {}
+                    } catch (InterruptedException ignore) {
+                    }
                 } else if (System.currentTimeMillis() - lastWarning >= 5000) {
                     Server.getInstance().getLogger().warning("SynapseEntry<" + getHash() + "> Async Thread is overloading! TPS: " + getTicksPerSecond() + " tickUseTime: " + tickUseTime);
                     lastWarning = System.currentTimeMillis();
@@ -209,18 +217,21 @@ public class SynapseEntry {
                 startTime = System.currentTimeMillis();
             }
         }
+
         public double getTicksPerSecond() {
             long more = this.tickUseTime - 10;
             if (more < 0) return 100;
-            return NukkitMath.round(10f / (double)this.tickUseTime, 3) * 100;
+            return NukkitMath.round(10f / (double) this.tickUseTime, 3) * 100;
         }
     }
 
     public class Ticker implements Runnable {
         private SynapseEntry entry;
+
         private Ticker(SynapseEntry entry) {
             this.entry = entry;
         }
+
         @Override
         public void run() {
             PlayerLoginPacket playerLoginPacket;
@@ -249,7 +260,7 @@ public class SynapseEntry {
             PlayerLogoutPacket playerLogoutPacket;
             while ((playerLogoutPacket = playerLogoutQueue.poll()) != null) {
                 UUID uuid1;
-                if(players.containsKey(uuid1 = playerLogoutPacket.uuid)){
+                if (players.containsKey(uuid1 = playerLogoutPacket.uuid)) {
                     players.get(uuid1).close(playerLogoutPacket.reason, playerLogoutPacket.reason, true);
                     removePlayer(uuid1);
                 }
@@ -257,7 +268,7 @@ public class SynapseEntry {
         }
     }
 
-    public void threadTick(){
+    public void threadTick() {
         this.synapseInterface.process();
         if (!this.getSynapseInterface().isConnected() || !this.verified) return;
         long time = System.currentTimeMillis();
@@ -281,7 +292,7 @@ public class SynapseEntry {
         long finalTime = System.currentTimeMillis();
         long usedTime = finalTime - time;
         //this.getSynapse().getServer().getLogger().warning(time + " -> threadTick 用时 " + usedTime + " 毫秒");
-        if(((finalTime - this.lastUpdate) >= 30000) && this.synapseInterface.isConnected()){  //30 seconds timeout
+        if (((finalTime - this.lastUpdate) >= 30000) && this.synapseInterface.isConnected()) {  //30 seconds timeout
             this.synapseInterface.reconnect();
         }
     }
@@ -339,7 +350,7 @@ public class SynapseEntry {
                 }
                 break;
             case SynapseInfo.PLAYER_LOGIN_PACKET:
-                this.playerLoginQueue.offer((PlayerLoginPacket)pk);
+                this.playerLoginQueue.offer((PlayerLoginPacket) pk);
                 break;
             case SynapseInfo.REDIRECT_PACKET:
                 RedirectPacket redirectPacket = (RedirectPacket) pk;
@@ -364,7 +375,7 @@ public class SynapseEntry {
                 }
                 break;
             case SynapseInfo.PLAYER_LOGOUT_PACKET:
-                this.playerLogoutQueue.offer((PlayerLogoutPacket)pk);
+                this.playerLogoutQueue.offer((PlayerLogoutPacket) pk);
                 break;
             case SynapseInfo.PLUGIN_MESSAGE_PACKET:
                 PluginMessagePacket messagePacket = (PluginMessagePacket) pk;
@@ -378,6 +389,7 @@ public class SynapseEntry {
     private class RedirectPacketEntry {
         private SynapsePlayer player;
         private DataPacket dataPacket;
+
         private RedirectPacketEntry(SynapsePlayer player, DataPacket dataPacket) {
             this.player = player;
             this.dataPacket = dataPacket;

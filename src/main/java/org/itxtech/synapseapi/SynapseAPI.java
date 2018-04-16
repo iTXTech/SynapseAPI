@@ -21,8 +21,6 @@ public class SynapseAPI extends PluginBase {
     public static boolean enable = true;
     private static SynapseAPI instance;
     private boolean autoConnect = true;
-    private boolean loadingScreen = false;
-    private boolean autoCompress = true;  //Compress in Nukkit, not Nemisys
     private Map<String, SynapseEntry> synapseEntries = new HashMap<>();
     private Messenger messenger;
 
@@ -44,14 +42,6 @@ public class SynapseAPI extends PluginBase {
         this.getServer().getNetwork().registerPacket(ProtocolInfo.SET_HEALTH_PACKET, SetHealthPacket.class);
         this.messenger = new StandardMessenger();
         loadEntries();
-    }
-
-    public boolean isUseLoadingScreen() {
-        return loadingScreen;
-    }
-
-    public boolean isAutoCompress() {
-        return autoCompress;
     }
 
     public Map<String, SynapseEntry> getSynapseEntries() {
@@ -95,7 +85,7 @@ public class SynapseAPI extends PluginBase {
     private void loadEntries() {
         this.saveDefaultConfig();
         enable = this.getConfig().getBoolean("enable", true);
-        this.autoCompress = this.getConfig().getBoolean("autoCompress", true);
+
         if (!enable) {
             this.getLogger().warning("The SynapseAPI is not be enabled!");
         } else {
@@ -115,11 +105,13 @@ public class SynapseAPI extends PluginBase {
                 String serverIp = section.getString("server-ip", "127.0.0.1");
                 int port = section.getInt("server-port", 10305);
                 boolean isMainServer = section.getBoolean("isMainServer");
+                boolean isLobbyServer = section.getBoolean("isLobbyServer");
+                boolean transfer = section.getBoolean("transferOnShutdown", true);
                 String password = section.getString("password");
                 String serverDescription = section.getString("description");
                 this.autoConnect = section.getBoolean("autoConnect", true);
                 if (this.autoConnect) {
-                    this.addSynapseAPI(new SynapseEntry(this, serverIp, port, isMainServer, password, serverDescription));
+                    this.addSynapseAPI(new SynapseEntry(this, serverIp, port, isMainServer, isLobbyServer, transfer, password, serverDescription));
                 }
             }
 

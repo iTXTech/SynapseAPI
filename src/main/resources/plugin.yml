@@ -2,7 +2,7 @@
 name: SynapseAPI
 main: org.itxtech.synapseapi.SynapseAPI
 #remember version and api is string, don't write it like this: 1.0.0, or there will be an exception
-version: "1.0.0"
+version: "2.0.0"
 api: ["1.0.0"]
 
 load: STARTUP
