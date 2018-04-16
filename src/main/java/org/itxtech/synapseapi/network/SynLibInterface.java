@@ -2,7 +2,10 @@ package org.itxtech.synapseapi.network;
 
 import cn.nukkit.Player;
 import cn.nukkit.network.SourceInterface;
+import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
+import cn.nukkit.utils.Binary;
+import org.itxtech.synapseapi.network.protocol.spp.RedirectPacket;
 
 /**
  * Created by boybook on 16/6/24.
@@ -41,7 +44,12 @@ public class SynLibInterface implements SourceInterface {
 
     @Override
     public Integer putPacket(Player player, DataPacket packet, boolean needACK, boolean immediate) {
-        this.synapseInterface.getPutPacketThread().addMainToThread(player, packet, needACK, immediate);
+        RedirectPacket pk = new RedirectPacket();
+        pk.uuid = player.getUniqueId();
+        pk.direct = immediate;
+        pk.mcpeBuffer = packet instanceof BatchPacket ? Binary.appendBytes((byte) 0xfe, ((BatchPacket) packet).payload) : packet.getBuffer();
+
+        this.synapseInterface.putPacket(pk);
         return 0;  //这个返回值在nk中并没有被用到
     }
 

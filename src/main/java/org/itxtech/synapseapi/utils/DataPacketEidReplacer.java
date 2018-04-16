@@ -4,6 +4,7 @@ import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.data.EntityData;
 import cn.nukkit.entity.data.EntityMetadata;
 import cn.nukkit.network.protocol.*;
+import cn.nukkit.utils.MainLogger;
 import com.google.common.collect.Sets;
 
 import java.util.Arrays;
@@ -88,7 +89,8 @@ public class DataPacketEidReplacer {
                 if (((BossEventPacket) packet).bossEid == from) ((BossEventPacket) packet).bossEid = to;
                 break;
             case AdventureSettingsPacket.NETWORK_ID:
-                if (((AdventureSettingsPacket) packet).entityUniqueId == from) ((AdventureSettingsPacket) packet).entityUniqueId = to;
+                if (((AdventureSettingsPacket) packet).entityUniqueId == from)
+                    ((AdventureSettingsPacket) packet).entityUniqueId = to;
                 break;
             case ProtocolInfo.UPDATE_EQUIPMENT_PACKET:
                 if (((UpdateEquipmentPacket) packet).eid == from) ((UpdateEquipmentPacket) packet).eid = to;
@@ -108,13 +110,17 @@ public class DataPacketEidReplacer {
         boolean changed = false;
 
         for (Integer key : replaceMetadata) {
-            if (data.getLong(key) == from) {
-                if (!changed) {
-                    data = cloneMetadata(data);
-                    changed = true;
-                }
+            try {
+                if (data.getLong(key) == from) {
+                    if (!changed) {
+                        data = cloneMetadata(data);
+                        changed = true;
+                    }
 
-                data.putLong(key, to);
+                    data.putLong(key, to);
+                }
+            } catch (Exception e) {
+                MainLogger.getLogger().error("Exception while replacing metadata '" + key + "'", e);
             }
         }
 

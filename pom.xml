@@ -31,16 +31,9 @@
 
     <repositories>
         <repository>
-            <id>nukkit-mengcraft</id>
-            <name>nukkit-mengcraft</name>
-            <url>https://repo.potestas.xyz/</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
+            <id>central</id>
+            <name>potestas-releases</name>
+            <url>https://repo.potestas.xyz/main</url>
         </repository>
     </repositories>
 

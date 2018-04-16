@@ -7,7 +7,6 @@ import cn.nukkit.PlayerFood;
 import cn.nukkit.Server;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.data.CommandDataVersions;
-import cn.nukkit.entity.Entity;
 import cn.nukkit.event.player.PlayerKickEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
 import cn.nukkit.event.server.DataPacketSendEvent;
@@ -17,13 +16,11 @@ import cn.nukkit.math.NukkitMath;
 import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
-import cn.nukkit.utils.DummyBossBar;
 import cn.nukkit.utils.TextFormat;
 import co.aikar.timings.Timing;
 import co.aikar.timings.TimingsManager;
 import org.itxtech.synapseapi.event.player.SynapsePlayerConnectEvent;
 import org.itxtech.synapseapi.event.player.SynapsePlayerTransferEvent;
-import org.itxtech.synapseapi.network.protocol.spp.FastPlayerListPacket;
 import org.itxtech.synapseapi.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.synapseapi.runnable.TransferRunnable;
 import org.itxtech.synapseapi.utils.ClientData;
@@ -375,17 +372,16 @@ public class SynapsePlayer extends Player {
                 return false;
             }
 
-            for (Entity entity : this.getLevel().getEntities()) {
-                if (entity.getViewers().containsKey(this.getLoaderId())) {
-                    entity.despawnFrom(this);
-                }
-            }
-            this.getDummyBossBars().values().forEach(DummyBossBar::destroy);
-            this.getDummyBossBars().clear();
             new TransferRunnable(this, hash).run();
             return true;
         }
+
         return false;
+    }
+
+    public boolean transferToLobby() {
+        new TransferRunnable(this, "lobby").run();
+        return true;
     }
 
     @Override
@@ -442,14 +438,17 @@ public class SynapsePlayer extends Player {
             return -1;
         }*/
         packet = DataPacketEidReplacer.replace(packet, this.getId(), Long.MAX_VALUE);
+
         DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
         this.server.getPluginManager().callEvent(ev);
         if (ev.isCancelled()) {
             return -1;
         }
 
-        if (!packet.isEncoded)
+        if (!packet.isEncoded) {
             packet.encode();
+            packet.isEncoded = true;
+        }
 
         //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{packet.getBuffer()[0]}) + "  len: " + packet.getBuffer().length);
         return this.interfaz.putPacket(this, packet, needACK);
@@ -464,23 +463,12 @@ public class SynapsePlayer extends Player {
         if (ev.isCancelled()) {
             return -1;
         }
-        return this.interfaz.putPacket(this, packet, needACK, true);
-    }
 
-    public void sendFullPlayerListData(boolean self) {
-        FastPlayerListPacket pk = new FastPlayerListPacket();
-        pk.sendTo = this.getUniqueId();
-        pk.type = PlayerListPacket.TYPE_ADD;
-        List<FastPlayerListPacket.Entry> entries = new ArrayList<>();
-        for (Player p : this.getServer().getOnlinePlayers().values()) {
-            if (!self && p == this) {
-                continue;
-            }
-            entries.add(new FastPlayerListPacket.Entry(p.getUniqueId(), p.getId(), p.getDisplayName()));
+        if (!packet.isEncoded) {
+            packet.encode();
+            packet.isEncoded = true;
         }
 
-        pk.entries = entries.stream().toArray(FastPlayerListPacket.Entry[]::new);
-
-        this.getSynapseEntry().sendDataPacket(pk);
+        return this.interfaz.putPacket(this, packet, needACK, true);
     }
 }

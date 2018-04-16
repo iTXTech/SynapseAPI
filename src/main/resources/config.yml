@@ -1,12 +1,13 @@
 #Synapse API for Nukkit: config
 disable-rak: false
 enable: true
-autoCompress: true
 
 entries:
   - server-ip: 127.0.0.1
     server-port: 10305
     isMainServer: true
+    isLobbyServer: true
+    transferOnShutdown: true
     password: must16keyslength
     description: Synapse Nukkit Server
     autoConnect: true

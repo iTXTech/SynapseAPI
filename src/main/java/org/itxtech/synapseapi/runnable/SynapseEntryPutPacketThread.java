@@ -6,9 +6,7 @@ import cn.nukkit.math.NukkitMath;
 import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.network.protocol.ProtocolInfo;
-import cn.nukkit.network.protocol.ResourcePacksInfoPacket;
 import cn.nukkit.utils.Binary;
-import org.itxtech.synapseapi.SynapseAPI;
 import org.itxtech.synapseapi.network.SynapseInterface;
 import org.itxtech.synapseapi.network.protocol.spp.RedirectPacket;
 
@@ -33,14 +31,13 @@ public class SynapseEntryPutPacketThread extends Thread {
     private final Deflater deflater = new Deflater(Server.getInstance().networkCompressionLevel);
     private final byte[] buf = new byte[1024];
 
-    private final boolean isAutoCompress;
+    private final boolean isAutoCompress = true;
     private long tickUseTime = 0;
     private boolean isRunning = true;
 
     public SynapseEntryPutPacketThread(SynapseInterface synapseInterface) {
         super("SynapseEntryPutPacketThread");
         this.synapseInterface = synapseInterface;
-        this.isAutoCompress = SynapseAPI.getInstance().isAutoCompress();
         this.start();
     }
 
@@ -93,7 +90,7 @@ public class SynapseEntryPutPacketThread extends Thread {
                 }
             }
             tickUseTime = System.currentTimeMillis() - start;
-            if (tickUseTime < 10){
+            if (tickUseTime < 10) {
                 try {
                     Thread.sleep(10 - tickUseTime);
                 } catch (InterruptedException e) {
@@ -104,7 +101,7 @@ public class SynapseEntryPutPacketThread extends Thread {
     }
 
     private byte[] deflate(byte[] data, int level) throws Exception {
-        if (deflater == null) throw new IllegalArgumentException("No deflate for level "+level+" !");
+        if (deflater == null) throw new IllegalArgumentException("No deflate for level " + level + " !");
         deflater.reset();
         deflater.setInput(data);
         deflater.finish();
@@ -122,6 +119,7 @@ public class SynapseEntryPutPacketThread extends Thread {
         private DataPacket packet;
         private boolean needACK;
         private boolean immediate;
+
         public Entry(Player player, DataPacket packet, boolean needACK, boolean immediate) {
             this.player = player;
             this.packet = packet;
@@ -133,7 +131,7 @@ public class SynapseEntryPutPacketThread extends Thread {
     public double getTicksPerSecond() {
         long more = this.tickUseTime - 10;
         if (more < 0) return 100;
-        return NukkitMath.round(10f / (double)this.tickUseTime, 3) * 100;
+        return NukkitMath.round(10f / (double) this.tickUseTime, 3) * 100;
     }
 
 }
