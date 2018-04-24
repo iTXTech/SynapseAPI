@@ -203,7 +203,12 @@ public class SynapseEntry {
         public void run() {
             long startTime = System.currentTimeMillis();
             while (Server.getInstance().isRunning()) {
-                threadTick();
+                try {
+                    threadTick();
+                } catch (Throwable t) {
+                    getSynapse().getLogger().error("Exception in Synapse Async Ticker", t);
+                }
+
                 tickUseTime = System.currentTimeMillis() - startTime;
                 if (tickUseTime < 10) {
                     try {
