@@ -72,7 +72,11 @@ public class SynapseInterface {
         SynapseDataPacket pk = this.client.readThreadToMainPacket();
 
         while (pk != null) {
-            this.handlePacket(pk);
+            try {
+                this.handlePacket(pk);
+            } catch (Throwable e) {
+                getSynapse().getSynapse().getLogger().error("Exception while handling incoming packet", e);
+            }
             pk = this.client.readThreadToMainPacket();
         }
 
