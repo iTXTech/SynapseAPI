@@ -34,6 +34,7 @@ public class SynapseInterface {
             pk.setBuffer(buffer, 0);
             return pk;
         }
+
         return null;
     }
 
