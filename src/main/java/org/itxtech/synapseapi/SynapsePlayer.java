@@ -207,9 +207,9 @@ public class SynapsePlayer extends Player {
             infoPacket.resourcePackEntries = this.server.getResourcePackManager().getResourceStack();
             infoPacket.mustAccept = this.server.getForceResources();
             this.dataPacket(infoPacket);
-        }/* else {
-            this.completeLoginSequence();
-        }*/
+        } else {
+            this.shouldLogin = true;
+        }
     }
 
     @Override
