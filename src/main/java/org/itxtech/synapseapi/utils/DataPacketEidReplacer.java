@@ -76,8 +76,8 @@ public class DataPacketEidReplacer {
             case MobEffectPacket.NETWORK_ID:
                 if (((MobEffectPacket) packet).eid == from) ((MobEffectPacket) packet).eid = to;
                 break;
-            case MoveEntityPacket.NETWORK_ID:
-                if (((MoveEntityPacket) packet).eid == from) ((MoveEntityPacket) packet).eid = to;
+            case MoveEntityAbsolutePacket.NETWORK_ID:
+                if (((MoveEntityAbsolutePacket) packet).eid == from) ((MoveEntityAbsolutePacket) packet).eid = to;
                 break;
             case MobArmorEquipmentPacket.NETWORK_ID:
                 if (((MobArmorEquipmentPacket) packet).eid == from) ((MobArmorEquipmentPacket) packet).eid = to;
