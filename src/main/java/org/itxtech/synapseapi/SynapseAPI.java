@@ -70,7 +70,7 @@ public class SynapseAPI extends PluginBase {
     public DataPacket getPacket(byte[] buffer) {
         byte pid = buffer[0] == (byte) 0xfe ? (byte) 0xff : buffer[0];
 
-        byte start = 3;
+        byte start = 1;
         DataPacket data;
         data = this.getServer().getNetwork().getPacket(pid);
 

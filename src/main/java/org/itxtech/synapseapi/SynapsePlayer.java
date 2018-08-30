@@ -70,7 +70,7 @@ public class SynapsePlayer extends Player {
         this.server.getPluginManager().callEvent(ev = new SynapsePlayerConnectEvent(this, this.isFirstTimeLogin));
         if (!ev.isCancelled()) {
             DataPacket pk = SynapseAPI.getInstance().getPacket(packet.cachedLoginPacket);
-            pk.setOffset(3);
+            pk.setOffset(1);
             pk.decode();
             this.handleDataPacket(pk);
         }
