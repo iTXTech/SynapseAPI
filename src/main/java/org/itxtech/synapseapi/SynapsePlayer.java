@@ -277,11 +277,7 @@ public class SynapsePlayer extends Player {
             newSettings.set(Type.ALLOW_FLIGHT, (gamemode & 0x01) > 0);
             newSettings.set(Type.NO_CLIP, gamemode == 0x03);
             newSettings.set(Type.FLYING, gamemode == 0x03);
-            if (this.isSpectator()) {
-                this.keepMovement = true;
-            } else {
-                this.keepMovement = false;
-            }
+            this.keepMovement = this.isSpectator();
             SetPlayerGameTypePacket pk = new SetPlayerGameTypePacket();
             pk.gamemode = getClientFriendlyGamemode(gamemode);
             this.dataPacket(pk);
@@ -349,7 +345,7 @@ public class SynapsePlayer extends Player {
                 pkList.add(chunk);
             }
         }
-        Server.getInstance().batchPackets(new Player[]{this}, pkList.stream().toArray(DataPacket[]::new));
+        Server.getInstance().batchPackets(new Player[]{this}, pkList.toArray(new DataPacket[0]));
     }
 
     public boolean transferByDescription(String serverDescription) {
