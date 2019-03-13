@@ -16,6 +16,7 @@ import cn.nukkit.math.NukkitMath;
 import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
+import cn.nukkit.utils.MainLogger;
 import cn.nukkit.utils.TextFormat;
 import co.aikar.timings.Timing;
 import co.aikar.timings.TimingsManager;
@@ -27,18 +28,31 @@ import org.itxtech.synapseapi.utils.ClientData;
 import org.itxtech.synapseapi.utils.ClientData.Entry;
 import org.itxtech.synapseapi.utils.DataPacketEidReplacer;
 
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
  * Created by boybook on 16/6/24.
  */
 public class SynapsePlayer extends Player {
+    private static final Method updateName;
 
     private static final Map<Byte, Timing> handlePlayerDataPacketTimings = new HashMap<>();
     public boolean isSynapseLogin = false;
     protected SynapseEntry synapseEntry;
     private boolean isFirstTimeLogin = false;
     private long synapseSlowLoginUntil = 0;
+
+    static {
+        try {
+            updateName = Server.class.getMethod("updateName", UUID.class, String.class);
+            updateName.setAccessible(true);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, String ip, int port) {
         super(interfaz, clientID, ip, port);
@@ -119,11 +133,30 @@ public class SynapsePlayer extends Player {
             }
         }
 
-        CompoundTag nbt = this.server.getOfflinePlayerData(this.username);
+        CompoundTag nbt;
+        File legacyDataFile = new File(server.getDataPath() + "players/" + this.username.toLowerCase() + ".dat");
+        File dataFile = new File(server.getDataPath() + "players/" + this.uuid.toString() + ".dat");
+        if (legacyDataFile.exists() && !dataFile.exists()) {
+            nbt = this.server.getOfflinePlayerData(this.username);
+
+            if (!legacyDataFile.delete()) {
+                MainLogger.getLogger().warning("Could not delete legacy player data for " + this.username);
+            }
+        } else {
+            nbt = this.server.getOfflinePlayerData(this.uuid);
+        }
+
         if (nbt == null) {
             this.close(this.getLeaveMessage(), "Invalid data");
-
             return;
+        }
+
+        if (getLoginChainData().isXboxAuthed() && server.getPropertyBoolean("xbox-auth") || !server.getPropertyBoolean("xbox-auth")) {
+            try {
+                updateName.invoke(server, this.uuid, this.username);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                // TODO: 13/03/2019 Something here?
+            }
         }
 
         this.playedBefore = (nbt.getLong("lastPlayed") - nbt.getLong("firstPlayed")) > 1;
@@ -178,7 +211,7 @@ public class SynapsePlayer extends Player {
         nbt.putLong("lastPlayed", System.currentTimeMillis() / 1000);
 
         if (this.server.getAutoSave()) {
-            this.server.saveOfflinePlayerData(this.username, nbt, true);
+            this.server.saveOfflinePlayerData(this.uuid, nbt, true);
         }
 
         this.sendPlayStatus(PlayStatusPacket.LOGIN_SUCCESS);
