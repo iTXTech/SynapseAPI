@@ -26,15 +26,15 @@
         <snapshotRepository>
             <id>snapshots</id>
             <name>nukkitx-snapshots</name>
-            <url>https://repo.potestas.xyz/snapshot</url>
+            <url>https://repo.nukkitx.com/snapshot</url>
         </snapshotRepository>
     </distributionManagement>
 
     <repositories>
         <repository>
-            <id>central</id>
-            <name>nukkitx-releases</name>
-            <url>https://repo.nukkitx.com/main</url>
+            <id>nukkitx-repo</id>
+            <name>nukkitx-snapshot</name>
+            <url>https://repo.nukkitx.com/snapshot</url>
         </repository>
     </repositories>
 
