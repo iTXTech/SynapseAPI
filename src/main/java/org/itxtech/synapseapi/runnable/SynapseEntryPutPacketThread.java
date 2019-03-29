@@ -2,18 +2,17 @@ package org.itxtech.synapseapi.runnable;
 
 import cn.nukkit.Player;
 import cn.nukkit.Server;
-import cn.nukkit.math.NukkitMath;
 import cn.nukkit.network.protocol.BatchPacket;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.utils.Binary;
+import cn.nukkit.utils.Zlib;
 import org.itxtech.synapseapi.network.SynapseInterface;
 import org.itxtech.synapseapi.network.protocol.spp.RedirectPacket;
 
-import java.io.ByteArrayOutputStream;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.zip.Deflater;
 
 /**
  * org.itxtech.synapseapi.runnable
@@ -23,13 +22,12 @@ import java.util.zip.Deflater;
  * itxTech
  * ===============
  */
+//TODO: add option for compression in synapse
 public class SynapseEntryPutPacketThread extends Thread {
 
     private final SynapseInterface synapseInterface;
     private final Queue<Entry> queue = new LinkedBlockingQueue<>();
-
-    private final Deflater deflater = new Deflater(Server.getInstance().networkCompressionLevel);
-    private final byte[] buf = new byte[1024];
+    private final Queue<Map<Player, DataPacket[]>> broadcastQueue = new LinkedBlockingQueue<>();
 
     private final boolean isAutoCompress = true;
     private long tickUseTime = 0;
@@ -44,6 +42,14 @@ public class SynapseEntryPutPacketThread extends Thread {
     public void addMainToThread(Player player, DataPacket packet, boolean needACK, boolean immediate) {
         this.queue.offer(new Entry(player, packet, needACK, immediate));
         //Server.getInstance().getLogger().debug("SynapseEntryPutPacketThread Offer: " + packet.getClass().getSimpleName());
+    }
+
+    public void addMainToThreadBroadcast(Map<Player, DataPacket[]> packets) {
+        if (packets == null || packets.isEmpty()) {
+            return;
+        }
+
+        this.broadcastQueue.offer(packets);
     }
 
     public void setRunning(boolean running) {
@@ -68,7 +74,7 @@ public class SynapseEntryPutPacketThread extends Thread {
                         if (!(entry.packet instanceof BatchPacket) && this.isAutoCompress) {
                             byte[] buffer = entry.packet.getBuffer();
                             try {
-                                buffer = deflate(
+                                buffer = Zlib.deflate(
                                         Binary.appendBytes(Binary.writeUnsignedVarInt(buffer.length), buffer),
                                         Server.getInstance().networkCompressionLevel);
                                 pk.mcpeBuffer = Binary.appendBytes((byte) 0xfe, buffer);
@@ -89,6 +95,33 @@ public class SynapseEntryPutPacketThread extends Thread {
                     Server.getInstance().getLogger().logException(e);
                 }
             }
+
+            Map<Player, DataPacket[]> entry1;
+            while ((entry1 = broadcastQueue.poll()) != null) {
+                try {
+                    for (Map.Entry<Player, DataPacket[]> playerEntry : entry1.entrySet()) {
+                        Player player = playerEntry.getKey();
+                        DataPacket[] playerPackets = playerEntry.getValue();
+
+                        for (DataPacket packet : playerPackets) {
+                            byte[] data = packet.getBuffer();
+
+                            if (data == null) {
+                                continue;
+                            }
+
+                            RedirectPacket pk = new RedirectPacket();
+                            pk.uuid = player.getUniqueId();
+                            pk.mcpeBuffer = data;
+                            this.synapseInterface.putPacket(pk);
+                        }
+                    }
+                } catch (Exception e) {
+                    Server.getInstance().getLogger().alert("Catch exception when Synapse Entry Put Packet: " + e.getMessage());
+                    Server.getInstance().getLogger().logException(e);
+                }
+            }
+
             tickUseTime = System.currentTimeMillis() - start;
             if (tickUseTime < 10) {
                 try {
@@ -100,25 +133,12 @@ public class SynapseEntryPutPacketThread extends Thread {
         }
     }
 
-    private byte[] deflate(byte[] data, int level) throws Exception {
-        if (deflater == null) throw new IllegalArgumentException("No deflate for level " + level + " !");
-        deflater.reset();
-        deflater.setInput(data);
-        deflater.finish();
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(data.length);
-        while (!deflater.finished()) {
-            int i = deflater.deflate(buf);
-            bos.write(buf, 0, i);
-        }
-        //Deflater::end is called the time when the process exits.
-        return bos.toByteArray();
-    }
-
     private class Entry {
-        private Player player;
-        private DataPacket packet;
-        private boolean needACK;
-        private boolean immediate;
+
+        private final Player player;
+        private final DataPacket packet;
+        private final boolean needACK;
+        private final boolean immediate;
 
         public Entry(Player player, DataPacket packet, boolean needACK, boolean immediate) {
             this.player = player;
@@ -127,11 +147,4 @@ public class SynapseEntryPutPacketThread extends Thread {
             this.immediate = immediate;
         }
     }
-
-    public double getTicksPerSecond() {
-        long more = this.tickUseTime - 10;
-        if (more < 0) return 100;
-        return NukkitMath.round(10f / (double) this.tickUseTime, 3) * 100;
-    }
-
 }
