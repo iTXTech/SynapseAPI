@@ -121,7 +121,6 @@ public class SynapseAPI extends PluginBase implements Listener {
                     this.addSynapseAPI(new SynapseEntry(this, serverIp, port, isMainServer, isLobbyServer, transfer, password, serverDescription));
                 }
             }
-
         }
     }
 
@@ -135,6 +134,8 @@ public class SynapseAPI extends PluginBase implements Listener {
         Player[] players = e.getPlayers();
 
         DataPacket[] packets = e.getPackets();
+
+        Map<DataPacket, List<Player>> unchanged = new HashMap<>();
         HashMap<SynapseEntry, Map<Player, DataPacket[]>> map = new HashMap<>();
 
         for (Player p : players) {
