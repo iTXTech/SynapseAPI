@@ -16,7 +16,6 @@ import org.itxtech.synapseapi.messaging.StandardMessenger;
 import org.itxtech.synapseapi.network.protocol.mcpe.SetHealthPacket;
 import org.itxtech.synapseapi.utils.DataPacketEidReplacer;
 
-import javax.xml.bind.DatatypeConverter;
 import java.util.*;
 
 /**
@@ -83,7 +82,7 @@ public class SynapseAPI extends PluginBase implements Listener {
         data = this.getServer().getNetwork().getPacket(pid);
 
         if (data == null) {
-            Server.getInstance().getLogger().notice("C => S Unknown packet with PID 0x" + DatatypeConverter.printHexBinary(new byte[pid]));
+            Server.getInstance().getLogger().notice("C => S Unknown packet with PID 0x" + String.format("%02x", pid));
             return null;
         }
         data.setBuffer(buffer, start);
