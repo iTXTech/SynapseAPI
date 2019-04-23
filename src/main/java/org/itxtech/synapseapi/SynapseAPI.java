@@ -139,6 +139,10 @@ public class SynapseAPI extends PluginBase implements Listener {
         HashMap<SynapseEntry, Map<Player, DataPacket[]>> map = new HashMap<>();
 
         for (Player p : players) {
+            if (!(p instanceof SynapsePlayer)) {
+                // We don't need to replace ids in non-synapse player packets
+                continue;
+            }
             SynapsePlayer player = (SynapsePlayer) p;
 
             SynapseEntry entry = player.getSynapseEntry();
