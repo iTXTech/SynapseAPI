@@ -305,6 +305,9 @@ public class SynapsePlayer extends Player {
             startGamePacket.generator = 1; //0 old, 1 infinite, 2 flat
             startGamePacket.gameRules = this.getLevel().getGameRules();
             this.dataPacket(startGamePacket);
+
+            this.dataPacket(new BiomeDefinitionListPacket());
+            this.dataPacket(new AvailableEntityIdentifiersPacket());
         } else {
             AdventureSettings newSettings = this.getAdventureSettings().clone(this);
             newSettings.set(Type.WORLD_IMMUTABLE, (gamemode & 0x02) > 0);
@@ -371,10 +374,10 @@ public class SynapsePlayer extends Player {
     protected void forceSendEmptyChunks() {
         int chunkPositionX = this.getFloorX() >> 4;
         int chunkPositionZ = this.getFloorZ() >> 4;
-        List<FullChunkDataPacket> pkList = new ArrayList<>();
+        List<LevelChunkPacket> pkList = new ArrayList<>();
         for (int x = -3; x < 3; x++) {
             for (int z = -3; z < 3; z++) {
-                FullChunkDataPacket chunk = new FullChunkDataPacket();
+                LevelChunkPacket chunk = new LevelChunkPacket();
                 chunk.chunkX = chunkPositionX + x;
                 chunk.chunkZ = chunkPositionZ + z;
                 chunk.data = new byte[0];
