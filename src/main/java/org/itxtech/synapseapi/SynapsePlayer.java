@@ -11,12 +11,10 @@ import cn.nukkit.event.player.PlayerKickEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
 import cn.nukkit.event.server.DataPacketSendEvent;
 import cn.nukkit.level.Level;
-import cn.nukkit.level.Position;
 import cn.nukkit.math.NukkitMath;
 import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
-import cn.nukkit.utils.MainLogger;
 import cn.nukkit.utils.TextFormat;
 import co.aikar.timings.Timing;
 import co.aikar.timings.TimingsManager;
@@ -31,7 +29,10 @@ import org.itxtech.synapseapi.utils.DataPacketEidReplacer;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Created by boybook on 16/6/24.
@@ -122,31 +123,31 @@ public class SynapsePlayer extends Player {
             this.server.getPluginManager().subscribeToPermission(Server.BROADCAST_CHANNEL_ADMINISTRATIVE, this);
         }
 
+        Player oldPlayer = null;
         for (Player p : new ArrayList<>(this.server.getOnlinePlayers().values())) {
-            if (p != this && p.getName() != null && p.getName().equalsIgnoreCase(this.getName())) {
-                if (!p.kick(PlayerKickEvent.Reason.NEW_CONNECTION, "logged in from another location")) {
-                    this.close(this.getLeaveMessage(), "Already connected");
-                    return;
-                }
-            } else if (p.loggedIn && this.getUniqueId().equals(p.getUniqueId())) {
-                if (!p.kick(PlayerKickEvent.Reason.NEW_CONNECTION, "logged in from another location")) {
-                    this.close(this.getLeaveMessage(), "Already connected");
-                    return;
-                }
+            if (p != this && p.getName() != null && p.getName().equalsIgnoreCase(this.getName()) ||
+                    this.getUniqueId().equals(p.getUniqueId())) {
+                oldPlayer = p;
+                break;
             }
         }
-
         CompoundTag nbt;
-        File legacyDataFile = new File(server.getDataPath() + "players/" + this.username.toLowerCase() + ".dat");
-        File dataFile = new File(server.getDataPath() + "players/" + this.uuid.toString() + ".dat");
-        if (legacyDataFile.exists() && !dataFile.exists()) {
-            nbt = this.server.getOfflinePlayerData(this.username);
-
-            if (!legacyDataFile.delete()) {
-                MainLogger.getLogger().warning("Could not delete legacy player data for " + this.username);
-            }
+        if (oldPlayer != null) {
+            oldPlayer.saveNBT();
+            nbt = oldPlayer.namedTag;
+            oldPlayer.close("", "disconnectionScreen.loggedinOtherLocation");
         } else {
-            nbt = this.server.getOfflinePlayerData(this.uuid);
+            File legacyDataFile = new File(server.getDataPath() + "players/" + this.username.toLowerCase() + ".dat");
+            File dataFile = new File(server.getDataPath() + "players/" + this.uuid.toString() + ".dat");
+            if (legacyDataFile.exists() && !dataFile.exists()) {
+                nbt = this.server.getOfflinePlayerData(this.username, false);
+
+                if (!legacyDataFile.delete()) {
+                    server.getLogger().warning("Could not delete legacy player data for " + this.username);
+                }
+            } else {
+                nbt = this.server.getOfflinePlayerData(this.uuid, true);
+            }
         }
 
         if (nbt == null) {
@@ -271,12 +272,6 @@ public class SynapsePlayer extends Player {
 
         if (this.isSpectator()) this.keepMovement = true;
 
-        Level level;
-        if (this.spawnPosition == null && this.namedTag.contains("SpawnLevel") && (level = this.server.getLevelByName(this.namedTag.getString("SpawnLevel"))) != null) {
-            this.spawnPosition = new Position(this.namedTag.getInt("SpawnX"), this.namedTag.getInt("SpawnY"), this.namedTag.getInt("SpawnZ"), level);
-        }
-
-        Position spawnPosition = this.getSpawn();
         if (this.isFirstTimeLogin) {
             StartGamePacket startGamePacket = new StartGamePacket();
             startGamePacket.entityUniqueId = REPLACE_ID;
@@ -291,9 +286,9 @@ public class SynapsePlayer extends Player {
             startGamePacket.dimension = (byte) (this.level.getDimension() & 0xff);
             startGamePacket.worldGamemode = getClientFriendlyGamemode(this.gamemode);
             startGamePacket.difficulty = this.server.getDifficulty();
-            startGamePacket.spawnX = (int) spawnPosition.x;
-            startGamePacket.spawnY = (int) spawnPosition.y;
-            startGamePacket.spawnZ = (int) spawnPosition.z;
+            startGamePacket.spawnX = (int) this.x;
+            startGamePacket.spawnY = (int) this.y;
+            startGamePacket.spawnZ = (int) this.z;
             startGamePacket.hasAchievementsDisabled = true;
             startGamePacket.dayCycleStopTime = -1;
             startGamePacket.eduMode = false;
@@ -305,6 +300,9 @@ public class SynapsePlayer extends Player {
             startGamePacket.generator = 1; //0 old, 1 infinite, 2 flat
             startGamePacket.gameRules = this.getLevel().getGameRules();
             this.dataPacket(startGamePacket);
+
+            this.dataPacket(new BiomeDefinitionListPacket());
+            this.dataPacket(new AvailableEntityIdentifiersPacket());
         } else {
             AdventureSettings newSettings = this.getAdventureSettings().clone(this);
             newSettings.set(Type.WORLD_IMMUTABLE, (gamemode & 0x02) > 0);
@@ -321,7 +319,7 @@ public class SynapsePlayer extends Player {
 
         this.loggedIn = true;
 
-        spawnPosition.level.sendTime(this);
+        this.level.sendTime(this);
 
         this.setMovementSpeed(DEFAULT_SPEED);
         this.sendAttributes();
@@ -343,14 +341,6 @@ public class SynapsePlayer extends Player {
             this.setRemoveFormat(false);
         }
 
-        if (this.gamemode == Player.SPECTATOR) {
-            InventoryContentPacket inventoryContentPacket = new InventoryContentPacket();
-            inventoryContentPacket.inventoryId = InventoryContentPacket.SPECIAL_CREATIVE;
-            this.dataPacket(inventoryContentPacket);
-        } else {
-            this.inventory.sendCreativeContents();
-        }
-
         this.setEnableClientCommand(true);
 
         this.forceMovement = this.teleportPosition = this.getPosition();
@@ -361,27 +351,6 @@ public class SynapsePlayer extends Player {
         ChunkRadiusUpdatedPacket chunkRadiusUpdatePacket = new ChunkRadiusUpdatedPacket();
         chunkRadiusUpdatePacket.radius = this.chunkRadius;
         this.dataPacket(chunkRadiusUpdatePacket);
-    }
-
-    @Override
-    protected void doFirstSpawn() {
-        super.doFirstSpawn();
-    }
-
-    protected void forceSendEmptyChunks() {
-        int chunkPositionX = this.getFloorX() >> 4;
-        int chunkPositionZ = this.getFloorZ() >> 4;
-        List<FullChunkDataPacket> pkList = new ArrayList<>();
-        for (int x = -3; x < 3; x++) {
-            for (int z = -3; z < 3; z++) {
-                FullChunkDataPacket chunk = new FullChunkDataPacket();
-                chunk.chunkX = chunkPositionX + x;
-                chunk.chunkZ = chunkPositionZ + z;
-                chunk.data = new byte[0];
-                pkList.add(chunk);
-            }
-        }
-        Server.getInstance().batchPackets(new Player[]{this}, pkList.toArray(new DataPacket[0]));
     }
 
     public boolean transferByDescription(String serverDescription) {

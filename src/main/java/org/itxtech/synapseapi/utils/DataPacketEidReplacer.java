@@ -237,8 +237,8 @@ public class DataPacketEidReplacer {
                 return "Float";
             case Entity.DATA_TYPE_STRING:
                 return "String";
-            case Entity.DATA_TYPE_SLOT:
-                return "Slot";
+            case Entity.DATA_TYPE_NBT:
+                return "NBT";
             case Entity.DATA_TYPE_POS:
                 return "Pos";
             case Entity.DATA_TYPE_LONG:
