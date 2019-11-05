@@ -291,7 +291,6 @@ public class SynapsePlayer extends Player {
             startGamePacket.spawnZ = (int) this.z;
             startGamePacket.hasAchievementsDisabled = true;
             startGamePacket.dayCycleStopTime = -1;
-            startGamePacket.eduMode = false;
             startGamePacket.rainLevel = 0;
             startGamePacket.lightningLevel = 0;
             startGamePacket.commandsEnabled = this.isEnableClientCommand();
